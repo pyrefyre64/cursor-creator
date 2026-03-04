@@ -1,4 +1,4 @@
-# KDE Cursor Maker
+# Cursor Creator
 
 A pure client-side web app for building KDE/X11 cursor themes from your own images. No account, no server, no uploads — everything runs in the browser.
 

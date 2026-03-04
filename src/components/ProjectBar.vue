@@ -68,7 +68,7 @@ async function onExportWindows() {
 <template>
   <div class="project-bar">
     <div class="bar-section brand">
-      <span class="app-name">KDE Cursor Maker</span>
+      <span class="app-name">Cursor Creator</span>
     </div>
 
     <div class="bar-section meta">
