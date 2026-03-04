@@ -71,7 +71,7 @@ export const CURSORS = [
       '9d800788f1b08800ae810202380a0822',
       'd9ce0ab605698f320427677b458ad60b',
     ],
-    detect: [/hand2?/i, /\bpointer\b/i, /link[_-]?select/i, /pointing/i, /finger/i],
+    detect: [/hand[12]/i, /\bpointer\b/i, /link[\s_-]?select/i, /pointing/i, /finger/i],
     hotspotHint: 'finger-tip',
   },
 
@@ -165,7 +165,7 @@ export const CURSORS = [
     winRole: 'No',
     category: 'unavailable',
     aliases: ['crossed_circle', 'circle', 'forbidden', '03b6e0fcb3499374a867c041f52298f0'],
-    detect: [/not[_-]?allow/i, /unavailable/i, /forbid/i, /crossed[_-]?circle/i, /\bno\b/i],
+    detect: [/not[_-]?allow/i, /unavailable/i, /forbid/i, /crossed[_-]?circle/i],
     hotspotHint: 'center',
   },
   {
