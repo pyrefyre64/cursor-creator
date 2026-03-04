@@ -11,6 +11,8 @@ export const project = reactive({
   images: {},
   /** @type {Record<string, string|null>} cursorId → imageId */
   assignments: {},
+  /** @type {Record<string, {x:boolean,y:boolean}>} cursorId → flip state */
+  flips: {},
   config: { sizes: [24, 32, 48] },
 })
 
@@ -120,6 +122,17 @@ export function setAssignment(cursorId, imageId) {
 /** @param {string} cursorId */
 export function removeAssignment(cursorId) {
   project.assignments[cursorId] = null
+  delete project.flips[cursorId]
+}
+
+/**
+ * Toggle a flip axis for a cursor slot.
+ * @param {string} cursorId
+ * @param {'x'|'y'} axis
+ */
+export function toggleFlip(cursorId, axis) {
+  if (!project.flips[cursorId]) project.flips[cursorId] = { x: false, y: false }
+  project.flips[cursorId][axis] = !project.flips[cursorId][axis]
 }
 
 // ── Hotspot ───────────────────────────────────────────────────────────────────
@@ -163,6 +176,7 @@ export function saveProject() {
     meta: { ...project.meta },
     images: project.images,
     assignments: { ...project.assignments },
+    flips: { ...project.flips },
     config: { ...project.config },
   }, null, 2)
 
@@ -188,6 +202,7 @@ export function loadProject(jsonText) {
   project.meta = data.meta ?? { name: 'MyTheme', description: '' }
   project.images = data.images ?? {}
   project.assignments = data.assignments ?? {}
+  project.flips = data.flips ?? {}
   project.config = data.config ?? { sizes: [24, 32, 48] }
 
   _refreshIdCounter()
@@ -198,6 +213,7 @@ export function resetProject() {
   project.meta = { name: 'MyTheme', description: '' }
   project.images = {}
   project.assignments = {}
+  project.flips = {}
   project.config = { sizes: [24, 32, 48] }
   _idCounter = 0
   ui.selectedCursorId = null

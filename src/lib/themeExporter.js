@@ -43,6 +43,8 @@ export async function exportTheme() {
 
     usedNames.add(cursorId)
 
+    const flip = project.flips[cursorId] ?? { x: false, y: false }
+
     // Build one frame per output size
     const frames = []
     for (const size of sizes) {
@@ -55,6 +57,7 @@ export async function exportTheme() {
             override.hotspot ?? null,
             imageEntry.hotspot ?? { x: 0, y: 0 },
             imageEntry.dims ?? { width: size, height: size },
+            flip,
           )
           frames.push(frame)
         } else {
@@ -63,6 +66,7 @@ export async function exportTheme() {
             size,
             imageEntry.hotspot ?? { x: 0, y: 0 },
             imageEntry.dims ?? { width: size, height: size },
+            flip,
           )
           frames.push(frame)
         }

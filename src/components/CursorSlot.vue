@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ui, setAssignment, removeAssignment } from '../store/project.js'
+import { project, ui, setAssignment, removeAssignment, toggleFlip } from '../store/project.js'
 
 const props = defineProps({
   cursor: { type: Object, required: true },
@@ -9,6 +9,13 @@ const props = defineProps({
 })
 
 const isSelected = computed(() => ui.selectedCursorId === props.cursor.id)
+const flip = computed(() => project.flips[props.cursor.id] ?? { x: false, y: false })
+const thumbTransform = computed(() => {
+  const parts = []
+  if (flip.value.x) parts.push('scaleX(-1)')
+  if (flip.value.y) parts.push('scaleY(-1)')
+  return parts.length ? parts.join(' ') : undefined
+})
 
 function onClick() {
   ui.selectedCursorId = props.cursor.id
@@ -45,12 +52,16 @@ function onClearClick(e) {
     @drop="onDrop"
   >
     <div class="thumb-area">
-      <img v-if="image" :src="image.data" class="thumb" :title="image.filename" />
+      <img v-if="image" :src="image.data" class="thumb" :title="image.filename" :style="thumbTransform ? { transform: thumbTransform } : undefined" />
       <div v-else class="thumb-placeholder" />
     </div>
     <div class="slot-info">
       <span class="slot-name" :title="cursor.id">{{ cursor.label }}</span>
       <span class="slot-id">{{ cursor.id }}</span>
+    </div>
+    <div v-if="image" class="flip-controls">
+      <button class="flip-btn" :class="{ active: flip.x }" @click.stop="toggleFlip(cursor.id, 'x')" title="Mirror horizontally">↔</button>
+      <button class="flip-btn" :class="{ active: flip.y }" @click.stop="toggleFlip(cursor.id, 'y')" title="Mirror vertically">↕</button>
     </div>
     <button v-if="image" class="clear-btn sm" @click="onClearClick" title="Remove assignment">✕</button>
   </div>
@@ -94,7 +105,6 @@ function onClearClick(e) {
 }
 
 .slot-info {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -114,6 +124,25 @@ function onClearClick(e) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.flip-controls {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.flip-btn {
+  background: transparent;
+  color: #7f8c8d;
+  border: 1px solid transparent;
+  padding: 1px 4px;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 3px;
+}
+.flip-btn:hover { color: #ccd; border-color: #3d4347; }
+.flip-btn.active { color: #3daee9; border-color: #3daee933; }
 
 .clear-btn {
   flex-shrink: 0;
