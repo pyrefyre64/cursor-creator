@@ -2,10 +2,14 @@
 import { computed, ref } from 'vue'
 import { project, ui, importFiles, removeImage, showToast } from '../store/project.js'
 import { getHandlerForFile, getAcceptString } from '../lib/formatRegistry.js'
+import { importArchive, isArchiveFile } from '../lib/archiveImporter.js'
 
-const acceptString = getAcceptString()
+const acceptString  = getAcceptString()
+const archiveAccept = '.zip,.tar,.tgz'
 
-const fileInput = ref(null)
+const fileInput   = ref(null)
+const folderInput = ref(null)
+const archiveInput = ref(null)
 
 const images = computed(() => Object.values(project.images))
 
@@ -21,21 +25,69 @@ function assignedToAll(imageId) {
     .map(([k]) => k)
 }
 
+async function _confirmBulk(count) {
+  return window.confirm(`This will import ${count} files. Continue?`)
+}
+
+async function _handleArchive(file) {
+  try {
+    const { successes, errors } = await importArchive(file, _confirmBulk)
+    const msg = `Imported ${successes.length} file(s) from ${file.name}`
+    if (errors.length) showToast(`${msg} (${errors.length} failed)`, 'error')
+    else showToast(msg, 'info')
+  } catch (err) {
+    showToast('Archive import failed: ' + err.message, 'error')
+    console.error(err)
+  }
+}
+
 async function onFilesSelected(e) {
-  const files = e.target.files
-  if (!files?.length) return
+  const files = Array.from(e.target.files ?? [])
+  e.target.value = ''
+  if (!files.length) return
+
+  const archives = files.filter(isArchiveFile)
+  const regular  = files.filter(f => !isArchiveFile(f))
+
+  for (const arc of archives) await _handleArchive(arc)
+  if (regular.length) {
+    const { errors } = await importFiles(regular)
+    if (errors.length) showToast(`Failed to load: ${errors.join(', ')}`, 'error')
+  }
+}
+
+async function onArchiveSelected(e) {
+  const files = Array.from(e.target.files ?? [])
+  e.target.value = ''
+  for (const arc of files) await _handleArchive(arc)
+}
+
+async function onFolderSelected(e) {
+  const files = Array.from(e.target.files ?? [])
+  e.target.value = ''
+  if (!files.length) return
+
+  if (files.length > 50) {
+    const ok = await _confirmBulk(files.length)
+    if (!ok) return
+  }
+
   const { errors } = await importFiles(files)
-  if (errors.length) showToast(`Failed to load: ${errors.join(', ')}`, 'error')
-  fileInput.value.value = ''
+  if (errors.length) showToast(`Folder import: ${errors.length} file(s) not recognised`, 'error')
+  else showToast(`Imported ${files.length} file(s) from folder`, 'info')
 }
 
 function onDropArea(e) {
   e.preventDefault()
-  // Allow extensionless files with no MIME type through — magic detection runs at import time
-  const files = Array.from(e.dataTransfer.files).filter(f =>
-    getHandlerForFile(f) !== null || (!f.name.includes('.') && !f.type)
+  const all = Array.from(e.dataTransfer.files)
+
+  const archives = all.filter(isArchiveFile)
+  const regular  = all.filter(f =>
+    !isArchiveFile(f) && (getHandlerForFile(f) !== null || (!f.name.includes('.') && !f.type))
   )
-  if (files.length) importFiles(files)
+
+  for (const arc of archives) _handleArchive(arc)
+  if (regular.length) importFiles(regular)
 }
 
 function onDragOver(e) { e.preventDefault() }
@@ -64,13 +116,19 @@ function onRoleClick(role) {
   <div class="image-pool" @dragover="onDragOver" @drop="onDropArea">
     <div class="pool-header">
       <span class="pool-title">Image Pool</span>
-      <button class="sm primary" @click="fileInput.click()">Import</button>
+      <div class="import-actions">
+        <button class="sm primary" @click="fileInput.click()">Import</button>
+        <button class="sm" @click="folderInput.click()" title="Import all images from a folder">Folder</button>
+        <button class="sm" @click="archiveInput.click()" title="Import from .zip or .tar.gz archive">Archive</button>
+      </div>
     </div>
 
-    <input ref="fileInput" type="file" multiple :accept="acceptString" style="display:none" @change="onFilesSelected" />
+    <input ref="fileInput"   type="file" multiple :accept="`${acceptString},${archiveAccept}`" style="display:none" @change="onFilesSelected" />
+    <input ref="folderInput" type="file" multiple webkitdirectory style="display:none" @change="onFolderSelected" />
+    <input ref="archiveInput" type="file" multiple :accept="archiveAccept" style="display:none" @change="onArchiveSelected" />
 
     <div v-if="images.length === 0" class="empty-state">
-      <p>Drop images here<br/>or click Import</p>
+      <p>Drop images, folders, or archives here<br/>or use the buttons above</p>
     </div>
 
     <div class="image-list">
@@ -115,6 +173,13 @@ function onRoleClick(role) {
   justify-content: space-between;
   padding: 8px 10px;
   border-bottom: 1px solid #3d4347;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.import-actions {
+  display: flex;
+  gap: 4px;
   flex-shrink: 0;
 }
 .pool-title {
