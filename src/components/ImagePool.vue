@@ -31,7 +31,10 @@ async function onFilesSelected(e) {
 
 function onDropArea(e) {
   e.preventDefault()
-  const files = Array.from(e.dataTransfer.files).filter(f => getHandlerForFile(f) !== null)
+  // Allow extensionless files with no MIME type through — magic detection runs at import time
+  const files = Array.from(e.dataTransfer.files).filter(f =>
+    getHandlerForFile(f) !== null || (!f.name.includes('.') && !f.type)
+  )
   if (files.length) importFiles(files)
 }
 

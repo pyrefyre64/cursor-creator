@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { detectCursorFromFilename } from '../data/cursorDatabase.js'
-import { getHandlerForFile } from '../lib/formatRegistry.js'
+import { getHandlerForFile, getHandlerForFileMagic } from '../lib/formatRegistry.js'
 
 // ── Project state (persisted in saved JSON) ──────────────────────────────────
 
@@ -50,7 +50,8 @@ function _refreshIdCounter() {
  * @returns {Promise<string>}
  */
 export async function importFile(file) {
-  const handler = getHandlerForFile(file)
+  let handler = getHandlerForFile(file)
+  if (!handler) handler = await getHandlerForFileMagic(file)
   if (!handler) throw new Error(`No format handler for: ${file.name}`)
 
   const parsed = await handler.parse(file)

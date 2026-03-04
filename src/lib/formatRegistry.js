@@ -51,6 +51,21 @@ export function getHandlerForFile(file) {
 }
 
 /**
+ * Find a handler by magic-byte sniffing (async fallback for extensionless files).
+ * Handlers opt in by providing a `magic` byte array, e.g. `magic: [0x58, 0x63, 0x75, 0x72]`.
+ *
+ * @param {File} file
+ * @returns {Promise<object|null>}
+ */
+export async function getHandlerForFileMagic(file) {
+  const magicHandlers = _handlers.filter(h => h.magic?.length)
+  if (!magicHandlers.length) return null
+  const maxLen = Math.max(...magicHandlers.map(h => h.magic.length))
+  const head = new Uint8Array(await file.slice(0, maxLen).arrayBuffer())
+  return magicHandlers.find(h => h.magic.every((b, i) => head[i] === b)) ?? null
+}
+
+/**
  * Build the `accept` string for <input type="file">.
  * Combines all MIME type prefixes and file extensions from registered handlers.
  *
