@@ -15,8 +15,10 @@ function isAssigned(imageId) {
   return assignedIds.value.has(imageId)
 }
 
-function assignedTo(imageId) {
-  return Object.entries(project.assignments).find(([, v]) => v === imageId)?.[0] ?? null
+function assignedToAll(imageId) {
+  return Object.entries(project.assignments)
+    .filter(([, v]) => v === imageId)
+    .map(([k]) => k)
 }
 
 async function onFilesSelected(e) {
@@ -48,6 +50,11 @@ function onDragEnd() {
 function onRemove(imageId) {
   removeImage(imageId)
 }
+
+function onRoleClick(role) {
+  ui.selectedCursorId = role
+  document.getElementById(`slot-${role}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
 </script>
 
 <template>
@@ -77,7 +84,12 @@ function onRemove(imageId) {
         <div class="item-info">
           <span class="item-name" :title="img.filename">{{ img.filename }}</span>
           <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
-          <span v-if="isAssigned(img.id)" class="item-assigned">→ {{ assignedTo(img.id) }}</span>
+          <button
+            v-for="role in assignedToAll(img.id)"
+            :key="role"
+            class="item-assigned role-link"
+            @click.stop="onRoleClick(role)"
+          >→ {{ role }}</button>
         </div>
         <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
       </div>
@@ -133,7 +145,7 @@ function onRemove(imageId) {
 
 .image-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   padding: 5px 6px;
   border-radius: 4px;
@@ -181,6 +193,16 @@ function onRemove(imageId) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.role-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.role-link:hover { color: #6ec9f5; }
 
 .remove-btn {
   flex-shrink: 0;

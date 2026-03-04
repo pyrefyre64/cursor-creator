@@ -37,6 +37,7 @@ function onClearClick(e) {
 
 <template>
   <div
+    :id="`slot-${cursor.id}`"
     class="cursor-slot"
     :class="{ selected: isSelected, assigned: !!image }"
     @click="onClick"
