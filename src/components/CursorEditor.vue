@@ -46,6 +46,12 @@ function isNativeSize(size) {
   return d && d.width === size && d.height === size
 }
 
+function isIntegerUpscale(size) {
+  const d = image.value?.dims
+  return d && size >= d.width && size >= d.height &&
+         size % d.width === 0 && size % d.height === 0
+}
+
 function scaledHotspot(size) {
   const ov = getOverride(size)
   if (ov?.hotspot) return ov.hotspot
@@ -124,7 +130,10 @@ function onOverrideHotspotY(size, e) {
                 <span class="size-badge">{{ size }}px</span>
                 <template v-if="!getOverride(size)">
                   <span v-if="isNativeSize(size)" class="size-source native">native</span>
-                  <span v-else class="size-source">scaled from {{ image.dims.width }}×{{ image.dims.height }}</span>
+                  <span v-else class="size-source">
+                    scaled from {{ image.dims.width }}×{{ image.dims.height }}
+                    <span :class="isIntegerUpscale(size) ? 'interp nearest' : 'interp'">· {{ isIntegerUpscale(size) ? 'nearest' : 'bilinear' }}</span>
+                  </span>
                 </template>
                 <span v-else class="size-source override">override</span>
                 <div class="size-hs">
@@ -307,6 +316,8 @@ function onOverrideHotspotY(size, e) {
 .size-source.override {
   color: #f0a050;
 }
+.interp { color: #4d5760; }
+.interp.nearest { color: #6ec9f5; }
 .size-hs {
   margin-left: auto;
   color: #7f8c8d;

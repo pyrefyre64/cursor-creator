@@ -2,10 +2,13 @@
 import { ref } from 'vue'
 import { project, saveProject, loadProject, showToast } from '../store/project.js'
 import { exportTheme } from '../lib/themeExporter.js'
+import { exportWindowsCursors } from '../lib/windowsExporter.js'
 
 const ALL_SIZES = [24, 32, 48, 64, 96]
 const loadInput = ref(null)
 const exporting = ref(false)
+const exportingWin = ref(false)
+const dropdownOpen = ref(false)
 
 function toggleSize(size) {
   const idx = project.config.sizes.indexOf(size)
@@ -44,6 +47,20 @@ async function onExport() {
     console.error(err)
   } finally {
     exporting.value = false
+  }
+}
+
+async function onExportWindows() {
+  dropdownOpen.value = false
+  exportingWin.value = true
+  try {
+    await exportWindowsCursors()
+    showToast('Windows cursors exported!', 'info')
+  } catch (err) {
+    showToast('Export failed: ' + err.message, 'error')
+    console.error(err)
+  } finally {
+    exportingWin.value = false
   }
 }
 </script>
@@ -86,9 +103,18 @@ async function onExport() {
     <div class="bar-section actions">
       <button @click="saveProject">Save Project</button>
       <button @click="loadInput.click()">Load Project</button>
-      <button class="primary" @click="onExport" :disabled="exporting">
-        {{ exporting ? 'Exporting…' : 'Export .tar.gz' }}
-      </button>
+      <div class="export-wrap">
+        <div class="export-split">
+          <button class="primary export-main" @click="onExport" :disabled="exporting || exportingWin">
+            {{ exporting ? 'Exporting…' : exportingWin ? 'Exporting…' : 'Export .tar.gz' }}
+          </button>
+          <button class="primary export-chevron" @click.stop="dropdownOpen = !dropdownOpen" :disabled="exporting || exportingWin" title="More export options">▾</button>
+        </div>
+        <div v-if="dropdownOpen" class="export-backdrop" @click="dropdownOpen = false"></div>
+        <div v-if="dropdownOpen" class="export-menu">
+          <button @click="onExportWindows">Export Windows (.ani)</button>
+        </div>
+      </div>
       <input ref="loadInput" type="file" accept=".json" style="display:none" @change="onLoadFile" />
     </div>
   </div>
@@ -171,5 +197,52 @@ async function onExport() {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.export-wrap {
+  position: relative;
+}
+.export-split {
+  display: flex;
+}
+.export-main {
+  border-radius: 4px 0 0 4px;
+}
+.export-chevron {
+  border-radius: 0 4px 4px 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 4px 7px;
+}
+.export-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+.export-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 100;
+  background: #232629;
+  border: 1px solid #3d4347;
+  border-radius: 4px;
+  min-width: 180px;
+  padding: 3px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.export-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #eff0f1;
+  cursor: pointer;
+  border-radius: 0;
+}
+.export-menu button:hover {
+  background: #31363b;
 }
 </style>

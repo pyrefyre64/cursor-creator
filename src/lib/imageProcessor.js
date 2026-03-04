@@ -30,16 +30,28 @@ export async function getImageDimensions(dataUrl) {
 /**
  * Resize an image (from HTMLImageElement) to a square of targetSize × targetSize.
  * Returns straight (non-premultiplied) RGBA pixel data.
+ *
+ * Uses nearest-neighbour interpolation when targetSize is an exact integer
+ * multiple of the source dimensions (e.g. 24→48, 32→64); otherwise bilinear.
+ *
  * @param {HTMLImageElement} img
  * @param {number} targetSize
  * @param {{x:boolean,y:boolean}} [flip]
+ * @param {number} [srcWidth]   natural width of img (defaults to img.naturalWidth)
+ * @param {number} [srcHeight]  natural height of img (defaults to img.naturalHeight)
  * @returns {Uint8ClampedArray}
  */
-export function resizeToPixels(img, targetSize, flip = { x: false, y: false }) {
+export function resizeToPixels(img, targetSize, flip = { x: false, y: false }, srcWidth, srcHeight) {
+  const sw = srcWidth  ?? img.naturalWidth
+  const sh = srcHeight ?? img.naturalHeight
+  const integerUpscale = targetSize >= sw && targetSize >= sh &&
+                         targetSize % sw === 0 && targetSize % sh === 0
+
   const canvas = document.createElement('canvas')
   canvas.width = targetSize
   canvas.height = targetSize
   const ctx = canvas.getContext('2d')
+  if (integerUpscale) ctx.imageSmoothingEnabled = false
   ctx.clearRect(0, 0, targetSize, targetSize)
   if (flip.x || flip.y) {
     ctx.save()
@@ -65,7 +77,7 @@ export function resizeToPixels(img, targetSize, flip = { x: false, y: false }) {
  */
 export async function processImage(dataUrl, targetSize, hotspot, masterDims, flip = { x: false, y: false }) {
   const img = await loadImage(dataUrl)
-  const pixels = resizeToPixels(img, targetSize, flip)
+  const pixels = resizeToPixels(img, targetSize, flip, masterDims.width, masterDims.height)
 
   let xhot = Math.round(hotspot.x * (targetSize / masterDims.width))
   let yhot = Math.round(hotspot.y * (targetSize / masterDims.height))
@@ -95,7 +107,7 @@ export async function processImage(dataUrl, targetSize, hotspot, masterDims, fli
  */
 export async function processOverride(overrideDataUrl, targetSize, overrideHotspot, masterHotspot, masterDims, flip = { x: false, y: false }) {
   const img = await loadImage(overrideDataUrl)
-  const pixels = resizeToPixels(img, targetSize, flip)
+  const pixels = resizeToPixels(img, targetSize, flip, img.naturalWidth, img.naturalHeight)
 
   let xhot, yhot
   if (overrideHotspot) {
