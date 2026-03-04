@@ -37,7 +37,14 @@ export const CURSORS = [
     id: 'left_ptr',
     label: 'Normal Select',
     category: 'pointer',
-    aliases: ['default', 'arrow', 'top_left_arrow', 'ul_angle', 'e29285e634086352946a0e7090d73106'],
+    aliases: [
+      'default',
+      'arrow',
+      'top_left_arrow',
+      'ul_angle',
+      'e29285e634086352946a0e7090d73106',
+      'normal_select'
+    ],
     detect: [/left[_-]?ptr/i, /normal[_-]?select/i, /\barrow\b/i, /\bdefault\b/i],
     hotspotHint: 'top-left',
   },
@@ -196,7 +203,12 @@ export const CURSORS = [
     id: 'nwse-resize',
     label: 'Diagonal Resize ↖↘',
     category: 'resize',
-    aliases: ['size_fdiag', 'bd_double_arrow', 'nwse_double_arrow'],
+    aliases: [
+      'size_fdiag',
+      'bd_double_arrow',
+      'nwse_double_arrow',
+      'diagonal_resize_1'
+    ],
     detect: [/nwse[_-]?resize/i, /size[_-]?fdiag/i, /bd[_-]?double/i, /\bnwse\b/i, /fdiag/i],
     hotspotHint: 'center',
   },
@@ -204,7 +216,12 @@ export const CURSORS = [
     id: 'nesw-resize',
     label: 'Diagonal Resize ↗↙',
     category: 'resize',
-    aliases: ['size_bdiag', 'fd_double_arrow', 'nesw_double_arrow'],
+    aliases: [
+      'size_bdiag', 
+      'fd_double_arrow', 
+      'nesw_double_arrow',
+      'diagonal_resize_2'
+    ],
     detect: [/nesw[_-]?resize/i, /size[_-]?bdiag/i, /fd[_-]?double/i, /\bnesw\b/i, /bdiag/i],
     hotspotHint: 'center',
   },
