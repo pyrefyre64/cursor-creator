@@ -1,12 +1,16 @@
 <script setup>
 import { computed } from 'vue'
-import { project } from '../store/project.js'
-import { CATEGORIES, CURSORS_BY_CATEGORY } from '../data/cursorDatabase.js'
+import { project, ui } from '../store/project.js'
+import { CATEGORIES, CURSORS, CURSORS_BY_CATEGORY } from '../data/cursorDatabase.js'
 import CursorSlot from './CursorSlot.vue'
 
 const categoriesWithCursors = computed(() =>
   CATEGORIES
-    .map(cat => ({ ...cat, cursors: CURSORS_BY_CATEGORY[cat.id] ?? [] }))
+    .map(cat => {
+      let cursors = CURSORS_BY_CATEGORY[cat.id] ?? []
+      if (ui.simpleMode) cursors = cursors.filter(c => c.winRole)
+      return { ...cat, cursors }
+    })
     .filter(cat => cat.cursors.length > 0)
 )
 
@@ -15,19 +19,30 @@ function getImage(cursorId) {
   return imageId ? project.images[imageId] ?? null : null
 }
 
+const visibleCursors = computed(() =>
+  ui.simpleMode ? CURSORS.filter(c => c.winRole) : CURSORS
+)
+
 const totalAssigned = computed(() =>
-  Object.values(project.assignments).filter(v => v && project.images[v]).length
+  visibleCursors.value.filter(c => {
+    const id = project.assignments[c.id]
+    return id && project.images[id]
+  }).length
 )
-const totalSlots = computed(() =>
-  Object.values(CURSORS_BY_CATEGORY).reduce((s, arr) => s + arr.length, 0)
-)
+const totalSlots = computed(() => visibleCursors.value.length)
 </script>
 
 <template>
   <div class="assignment-grid">
     <div class="grid-header">
       <span class="grid-title">Cursor Assignments</span>
-      <span class="grid-count">{{ totalAssigned }} / {{ totalSlots }} assigned</span>
+      <div class="grid-header-right">
+        <span class="grid-count">{{ totalAssigned }} / {{ totalSlots }}</span>
+        <div class="mode-seg" title="Simple: Windows-compatible cursors only · Full: all X11/Linux roles">
+          <button class="seg-btn" :class="{ active: ui.simpleMode }"  @click="ui.simpleMode = true">Simple</button>
+          <button class="seg-btn" :class="{ active: !ui.simpleMode }" @click="ui.simpleMode = false">Full</button>
+        </div>
+      </div>
     </div>
 
     <div class="grid-body">
@@ -70,9 +85,34 @@ const totalSlots = computed(() =>
   letter-spacing: 0.5px;
   color: #aab;
 }
+.grid-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .grid-count {
   font-size: 11px;
   color: #7f8c8d;
+}
+.mode-seg {
+  display: flex;
+  border: 1px solid #3d4347;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.seg-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #232629;
+  color: #7f8c8d;
+  border: none;
+  border-radius: 0;
+}
+.seg-btn + .seg-btn { border-left: 1px solid #3d4347; }
+.seg-btn:hover { background: #31363b; color: #eff0f1; }
+.seg-btn.active {
+  background: #1d3a4a;
+  color: #3daee9;
 }
 
 .grid-body {

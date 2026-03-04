@@ -25,6 +25,8 @@ export const ui = reactive({
   draggingImageId: null,
   /** Toast notification */
   toast: null,    // { message: string, type: 'info'|'error' }
+  /** When true, assignment grid shows only the 15 Windows-mapped cursor roles */
+  simpleMode: true,
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -8,8 +8,10 @@
  *   aliases     — additional names written as symlinks in the theme
  *   detect      — regex array for auto-assigning from imported filenames
  *   hotspotHint — rough position hint ('top-left' | 'center' | 'top-right' | ...)
+ *   winRole     — Windows registry key name (HKCU\Control Panel\Cursors), if this
+ *                 cursor has a direct Windows equivalent. Absence means Linux/web only.
+ *                 These 15 roles are also the "simple mode" set.
  *
- * Windows → X11 mapping follows cursor-mapping.md.
  * Total named cursors (primary + all aliases) exceeds 70.
  */
 
@@ -36,6 +38,7 @@ export const CURSORS = [
   {
     id: 'left_ptr',
     label: 'Normal Select',
+    winRole: 'Arrow',
     category: 'pointer',
     aliases: [
       'default',
@@ -61,6 +64,7 @@ export const CURSORS = [
   {
     id: 'hand2',
     label: 'Link Select',
+    winRole: 'Hand',
     category: 'link',
     aliases: [
       'pointer', 'hand', 'hand1', 'pointing_hand',
@@ -75,6 +79,7 @@ export const CURSORS = [
   {
     id: 'watch',
     label: 'Busy',
+    winRole: 'Wait',
     category: 'status',
     aliases: ['wait', 'clock', 'f29f11e539c5f3b21f0f5f1d45c01051'],
     detect: [/\bwatch\b/i, /\bwait\b/i, /\bclock\b/i, /\bbusy\b/i],
@@ -83,6 +88,7 @@ export const CURSORS = [
   {
     id: 'left_ptr_watch',
     label: 'Working in Background',
+    winRole: 'AppStarting',
     category: 'status',
     aliases: ['08e8e1c95fe2fc01f976f1e063a24ccd', '3ecb610c1bf2410f44200f48c40d3599'],
     detect: [/left[_-]?ptr[_-]?watch/i, /working/i, /app[_-]?starting/i, /background/i],
@@ -101,6 +107,7 @@ export const CURSORS = [
   {
     id: 'help',
     label: 'Help Select',
+    winRole: 'Help',
     category: 'help',
     aliases: [
       'question_arrow',
@@ -114,6 +121,7 @@ export const CURSORS = [
   {
     id: 'crosshair',
     label: 'Precision Select',
+    winRole: 'Crosshair',
     category: 'precision',
     aliases: ['cross', 'plus', 'tcross', 'diamond_cross'],
     detect: [/crosshair/i, /\bprecision\b/i, /\btcross\b/i, /\bcross\b/i],
@@ -124,6 +132,7 @@ export const CURSORS = [
   {
     id: 'xterm',
     label: 'Text Select',
+    winRole: 'IBeam',
     category: 'text',
     aliases: ['text', 'ibeam'],
     detect: [/xterm/i, /\btext\b/i, /ibeam/i, /i[_-]?beam/i],
@@ -142,6 +151,7 @@ export const CURSORS = [
   {
     id: 'pencil',
     label: 'Handwriting',
+    winRole: 'NWPen',
     category: 'handwriting',
     aliases: [],
     detect: [/pencil/i, /handwriting/i, /\bpen\b/i],
@@ -152,6 +162,7 @@ export const CURSORS = [
   {
     id: 'not-allowed',
     label: 'Unavailable',
+    winRole: 'No',
     category: 'unavailable',
     aliases: ['crossed_circle', 'circle', 'forbidden', '03b6e0fcb3499374a867c041f52298f0'],
     detect: [/not[_-]?allow/i, /unavailable/i, /forbid/i, /crossed[_-]?circle/i, /\bno\b/i],
@@ -170,6 +181,7 @@ export const CURSORS = [
   {
     id: 'ew-resize',
     label: 'Horizontal Resize',
+    winRole: 'SizeWE',
     category: 'resize',
     aliases: ['sb_h_double_arrow', 'h_double_arrow', 'size_hor', '1ab6223944d28fd11d49c6a2c6f8998b'],
     detect: [/ew[_-]?resize/i, /horiz.*resize/i, /size[_-]?hor/i, /h[_-]?double[_-]?arrow/i],
@@ -186,6 +198,7 @@ export const CURSORS = [
   {
     id: 'ns-resize',
     label: 'Vertical Resize',
+    winRole: 'SizeNS',
     category: 'resize',
     aliases: ['sb_v_double_arrow', 'v_double_arrow', 'size_ver', '2870a09082c103050810ffdffffe0204', 'c07385c7190e701020ff7ffffd08103c'],
     detect: [/ns[_-]?resize/i, /vert.*resize/i, /size[_-]?ver/i, /v[_-]?double[_-]?arrow/i],
@@ -202,6 +215,7 @@ export const CURSORS = [
   {
     id: 'nwse-resize',
     label: 'Diagonal Resize ↖↘',
+    winRole: 'SizeNWSE',
     category: 'resize',
     aliases: [
       'size_fdiag',
@@ -215,6 +229,7 @@ export const CURSORS = [
   {
     id: 'nesw-resize',
     label: 'Diagonal Resize ↗↙',
+    winRole: 'SizeNESW',
     category: 'resize',
     aliases: [
       'size_bdiag', 
@@ -294,6 +309,7 @@ export const CURSORS = [
   {
     id: 'fleur',
     label: 'Move',
+    winRole: 'SizeAll',
     category: 'move',
     aliases: ['move', 'all-scroll', 'size_all', '00000000000000020006000e7e9ffc3f'],
     detect: [/\bfleur\b/i, /\bmove\b/i, /all[_-]?scroll/i, /size[_-]?all/i],
@@ -302,6 +318,7 @@ export const CURSORS = [
   {
     id: 'sb_up_arrow',
     label: 'Alternate Select',
+    winRole: 'UpArrow',
     category: 'move',
     aliases: ['up_arrow', 'center_ptr'],
     detect: [/up[_-]?arrow/i, /sb[_-]?up/i, /center[_-]?ptr/i, /alternate/i],
