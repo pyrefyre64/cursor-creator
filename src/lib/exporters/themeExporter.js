@@ -1,9 +1,9 @@
 import { gzip } from 'fflate'
-import { buildXcursor } from './xcursor.js'
-import { TarWriter } from './tarWriter.js'
-import { processImage, processOverride } from './imageProcessor.js'
-import { project } from '../store/project.js'
-import { getCursorById } from '../data/cursorDatabase.js'
+import { buildXcursor } from '../writers/xcursor.js'
+import { TarWriter } from '../writers/tarWriter.js'
+import { processImage, processOverride } from '../imageProcessor.js'
+import { project } from '../../store/project.js'
+import { getCursorById } from '../../data/cursorDatabase.js'
 
 /**
  * Export the current project as a KDE cursor theme .tar.gz file.

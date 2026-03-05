@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from 'vue'
 import { project, saveProject, loadProject, showToast } from '../store/project.js'
-import { exportTheme } from '../lib/themeExporter.js'
-import { exportWindowsCursors } from '../lib/windowsExporter.js'
+import { exportTheme } from '../lib/exporters/themeExporter.js'
+import { exportWindowsCursors } from '../lib/exporters/windowsExporter.js'
+import { exportPngZip } from '../lib/exporters/pngExporter.js'
+import { exportCssStylesheet } from '../lib/exporters/cssExporter.js'
 
 const ALL_SIZES = [24, 32, 48, 64, 96]
 const loadInput = ref(null)
@@ -50,12 +52,12 @@ async function onExport() {
   }
 }
 
-async function onExportWindows() {
+async function _runDropdownExport(fn, successMsg) {
   dropdownOpen.value = false
   exportingWin.value = true
   try {
-    await exportWindowsCursors()
-    showToast('Windows cursors exported!', 'info')
+    await fn()
+    showToast(successMsg, 'info')
   } catch (err) {
     showToast('Export failed: ' + err.message, 'error')
     console.error(err)
@@ -63,6 +65,10 @@ async function onExportWindows() {
     exportingWin.value = false
   }
 }
+
+const onExportWindows = () => _runDropdownExport(exportWindowsCursors, 'Windows cursors exported!')
+const onExportPng     = () => _runDropdownExport(exportPngZip,         'PNG zip exported!')
+const onExportCss     = () => _runDropdownExport(exportCssStylesheet,  'CSS stylesheet exported!')
 </script>
 
 <template>
@@ -112,7 +118,9 @@ async function onExportWindows() {
         </div>
         <div v-if="dropdownOpen" class="export-backdrop" @click="dropdownOpen = false"></div>
         <div v-if="dropdownOpen" class="export-menu">
-          <button @click="onExportWindows">Export Windows (.ani)</button>
+          <button @click="onExportWindows">Windows cursors (.ani + .inf)</button>
+          <button @click="onExportPng">Raw PNG files (.zip)</button>
+          <button @click="onExportCss">CSS stylesheet (.css)</button>
         </div>
       </div>
       <input ref="loadInput" type="file" accept=".json" style="display:none" @change="onLoadFile" />
