@@ -6,6 +6,8 @@ import { getHandlerForFile, getAcceptString } from '../lib/formatRegistry.js'
 const acceptString = getAcceptString()
 
 const fileInput = ref(null)
+const assignedOpen   = ref(true)
+const unassignedOpen = ref(true)
 
 const images = computed(() => Object.values(project.images))
 
@@ -36,6 +38,9 @@ function badgesFor(imageId) {
 function isLinked(imageId) {
   return badgesFor(imageId).length > 0
 }
+
+const assignedImages   = computed(() => images.value.filter(img => isLinked(img.id)))
+const unassignedImages = computed(() => images.value.filter(img => !isLinked(img.id)))
 
 async function onFilesSelected(e) {
   const files = e.target.files
@@ -89,29 +94,64 @@ function onRoleClick(role) {
       <p>Drop images here<br/>or click Import</p>
     </div>
 
-    <div class="image-list">
-      <div
-        v-for="img in images"
-        :key="img.id"
-        class="image-item"
-        :class="{ 'is-assigned': isLinked(img.id), dragging: ui.draggingImageId === img.id }"
-        draggable="true"
-        @dragstart="onDragStart($event, img.id)"
-        @dragend="onDragEnd"
-      >
-        <img :src="img.data" class="item-thumb" :title="img.filename" />
-        <div class="item-info">
-          <span class="item-name" :title="img.filename">{{ img.filename }}</span>
-          <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
-          <button
-            v-for="b in badgesFor(img.id)"
-            :key="b.cursorId + b.sizeStr"
-            class="item-assigned role-link"
-            @click.stop="onRoleClick(b.cursorId)"
-          >→ {{ b.cursorId }} {{ b.sizeStr }}px</button>
-        </div>
-        <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
-      </div>
+    <div v-else class="image-list">
+      <!-- Assigned section -->
+      <template v-if="assignedImages.length">
+        <button class="section-header" @click="assignedOpen = !assignedOpen">
+          <span class="chevron" :class="{ open: assignedOpen }">›</span>
+          Assigned <span class="section-count">{{ assignedImages.length }}</span>
+        </button>
+        <template v-if="assignedOpen">
+          <div
+            v-for="img in assignedImages"
+            :key="img.id"
+            class="image-item"
+            :class="{ dragging: ui.draggingImageId === img.id }"
+            draggable="true"
+            @dragstart="onDragStart($event, img.id)"
+            @dragend="onDragEnd"
+          >
+            <img :src="img.data" class="item-thumb" :title="img.filename" />
+            <div class="item-info">
+              <span class="item-name" :title="img.filename">{{ img.filename }}</span>
+              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
+              <button
+                v-for="b in badgesFor(img.id)"
+                :key="b.cursorId + b.sizeStr"
+                class="item-assigned role-link"
+                @click.stop="onRoleClick(b.cursorId)"
+              >→ {{ b.cursorId }} {{ b.sizeStr }}px</button>
+            </div>
+            <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
+          </div>
+        </template>
+      </template>
+
+      <!-- Unassigned section -->
+      <template v-if="unassignedImages.length">
+        <button class="section-header" @click="unassignedOpen = !unassignedOpen">
+          <span class="chevron" :class="{ open: unassignedOpen }">›</span>
+          Unassigned <span class="section-count">{{ unassignedImages.length }}</span>
+        </button>
+        <template v-if="unassignedOpen">
+          <div
+            v-for="img in unassignedImages"
+            :key="img.id"
+            class="image-item"
+            :class="{ dragging: ui.draggingImageId === img.id }"
+            draggable="true"
+            @dragstart="onDragStart($event, img.id)"
+            @dragend="onDragEnd"
+          >
+            <img :src="img.data" class="item-thumb" :title="img.filename" />
+            <div class="item-info">
+              <span class="item-name" :title="img.filename">{{ img.filename }}</span>
+              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
+            </div>
+            <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
@@ -162,6 +202,44 @@ function onRoleClick(role) {
   gap: 2px;
 }
 
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7f8c8d;
+  cursor: pointer;
+  text-align: left;
+  margin-top: 2px;
+}
+.section-header:hover { color: #aab; background: #31363b; }
+.section-header:first-child { margin-top: 0; }
+
+.chevron {
+  font-size: 12px;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.15s;
+  transform: rotate(0deg);
+}
+.chevron.open { transform: rotate(90deg); }
+
+.section-count {
+  background: #31363b;
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 9px;
+  color: #7f8c8d;
+}
+
 .image-item {
   display: flex;
   align-items: flex-start;
@@ -173,7 +251,6 @@ function onRoleClick(role) {
   transition: background 0.1s;
 }
 .image-item:hover { background: #31363b; }
-.image-item.is-assigned { border-color: #3daee933; }
 .image-item.dragging { opacity: 0.5; }
 
 .item-thumb {
