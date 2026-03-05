@@ -5,8 +5,8 @@
  */
 
 import { zipSync } from 'fflate'
-import { processImage, processOverride } from '../imageProcessor.js'
-import { project } from '../../store/project.js'
+import { processFromSources } from '../imageProcessor.js'
+import { project, getSourcesForCursor } from '../../store/project.js'
 
 async function _pixelsToPng(pixels, width, height) {
   const canvas = new OffscreenCanvas(width, height)
@@ -23,29 +23,20 @@ export async function exportPngZip() {
 
   if (sizes.length === 0) throw new Error('No output sizes selected.')
 
-  const assignedEntries = Object.entries(project.assignments)
-    .filter(([, id]) => id && project.images[id])
-  if (assignedEntries.length === 0) throw new Error('No cursor images assigned.')
+  const assignedCursorIds = Object.keys(project.assignments)
+    .filter(cursorId => getSourcesForCursor(cursorId).length > 0)
+  if (assignedCursorIds.length === 0) throw new Error('No cursor images assigned.')
 
   const zipFiles = {}
 
-  for (const [cursorId, imageId] of assignedEntries) {
-    const imageEntry = project.images[imageId]
-    if (!imageEntry) continue
-
+  for (const cursorId of assignedCursorIds) {
     const flip = project.flips[cursorId] ?? { x: false, y: false }
+    const sources = getSourcesForCursor(cursorId)
 
     for (const size of sizes) {
-      const override = imageEntry.sizeOverrides?.[String(size)]
       try {
-        const frame = override?.data
-          ? await processOverride(override.data, size, override.hotspot ?? null,
-              imageEntry.hotspot ?? { x: 0, y: 0 },
-              imageEntry.dims   ?? { width: size, height: size }, flip)
-          : await processImage(imageEntry.data, size,
-              imageEntry.hotspot ?? { x: 0, y: 0 },
-              imageEntry.dims   ?? { width: size, height: size }, flip)
-
+        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+        const frame = await processFromSources(sources, size, flip, scalePref)
         zipFiles[`${cursorId}_${size}.png`] = await _pixelsToPng(frame.pixels, size, size)
       } catch (err) {
         console.warn(`Skipping size ${size} for ${cursorId} (png):`, err)

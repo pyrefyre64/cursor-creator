@@ -2,17 +2,23 @@ import { reactive } from 'vue'
 import { detectCursorFromFilename } from '../data/cursorDatabase.js'
 import { getHandlerForFile, getHandlerForFileMagic } from '../lib/formatRegistry.js'
 
+const SCHEMA_VERSION = '2.0'
+
 // ── Project state (persisted in saved JSON) ──────────────────────────────────
 
 export const project = reactive({
-  version: '1.0',
+  version: SCHEMA_VERSION,
   meta: { name: 'MyTheme', description: '' },
   /** @type {Record<string, ImageEntry>} */
   images: {},
-  /** @type {Record<string, string|null>} cursorId → imageId */
+  /** @type {Record<string, string|null>} cursorId → imageId (primary/fallback) */
   assignments: {},
+  /** @type {Record<string, Record<string, string>>} cursorId → sizeStr → imageId */
+  sizeLinks: {},
   /** @type {Record<string, {x:boolean,y:boolean}>} cursorId → flip state */
   flips: {},
+  /** @type {Record<string, Record<string, 'up'|'down'>>} cursorId → sizeStr → scale direction */
+  scalePrefs: {},
   config: { sizes: [24, 32, 48] },
 })
 
@@ -27,6 +33,12 @@ export const ui = reactive({
   toast: null,    // { message: string, type: 'info'|'error' }
   /** When true, assignment grid shows only the 15 Windows-mapped cursor roles */
   simpleMode: true,
+  /**
+   * Pending size-conflict resolutions from import.
+   * Each entry: { cursorId, sizeStr, newId, existingId, inPrimary }
+   * @type {Array<{cursorId:string, sizeStr:string, newId:string, existingId:string, inPrimary:boolean}>}
+   */
+  conflicts: [],
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -62,6 +74,7 @@ export async function importFile(file) {
   const id = _nextId()
   const basename = file.name.replace(/\.[^.]+$/, '')
 
+  // File identity is the generated id — filename is display-only metadata
   project.images[id] = {
     id,
     filename: file.name,
@@ -71,20 +84,79 @@ export async function importFile(file) {
       x: Math.floor(parsed.width / 2),
       y: Math.floor(parsed.height / 2),
     },
-    sizeOverrides: {},
   }
 
-  // Auto-detect and assign if slot is free
   const detectedRole = detectCursorFromFilename(basename)
-  if (detectedRole && !project.assignments[detectedRole]) {
-    project.assignments[detectedRole] = id
+  if (detectedRole) {
+    const conflict = _routeToRole(id, detectedRole, parsed.width, parsed.height)
+    if (conflict) return { id, conflict }
   }
 
+  return { id }
+}
+
+/**
+ * Route a newly-imported image to its detected cursor role.
+ * Returns a conflict descriptor if a same-size source already exists, null otherwise.
+ * @private
+ */
+function _routeToRole(id, cursorId, width, height) {
+  if (!project.assignments[cursorId]) {
+    project.assignments[cursorId] = id
+    return null
+  }
+  if (width !== height) return null   // non-square: just pool, no link
+
+  const sizeStr = String(width)
+  const primaryId = project.assignments[cursorId]
+  const primaryImg = project.images[primaryId]
+  if (primaryImg && primaryImg.dims.width === width) {
+    return { cursorId, sizeStr, newId: id, existingId: primaryId, inPrimary: true }
+  }
+  const existingLinkId = project.sizeLinks[cursorId]?.[sizeStr]
+  if (existingLinkId && project.images[existingLinkId]) {
+    return { cursorId, sizeStr, newId: id, existingId: existingLinkId, inPrimary: false }
+  }
+  if (!project.sizeLinks[cursorId]) project.sizeLinks[cursorId] = {}
+  project.sizeLinks[cursorId][sizeStr] = id
+  return null
+}
+
+/**
+ * Import a file and directly link it to a specific cursor role,
+ * bypassing filename-based auto-detection.
+ * Pushes a conflict to ui.conflicts if a same-size source already exists.
+ * @param {File} file
+ * @param {string} cursorId
+ * @returns {Promise<string>} the new image id
+ */
+export async function importFileForCursor(file, cursorId) {
+  let handler = getHandlerForFile(file)
+  if (!handler) handler = await getHandlerForFileMagic(file)
+  if (!handler) throw new Error(`No format handler for: ${file.name}`)
+
+  const parsed = await handler.parse(file)
+  const id = _nextId()
+
+  project.images[id] = {
+    id,
+    filename: file.name,
+    data: parsed.dataUrl,
+    dims: { width: parsed.width, height: parsed.height },
+    hotspot: parsed.hotspot ?? {
+      x: Math.floor(parsed.width / 2),
+      y: Math.floor(parsed.height / 2),
+    },
+  }
+
+  const conflict = _routeToRole(id, cursorId, parsed.width, parsed.height)
+  if (conflict) ui.conflicts.push(conflict)
   return id
 }
 
 /**
  * Import multiple files, returning an object of { successes, errors }.
+ * Same-size conflicts are pushed to ui.conflicts for the user to resolve.
  * @param {FileList|File[]} files
  * @returns {Promise<{successes: string[], errors: string[]}>}
  */
@@ -93,8 +165,9 @@ export async function importFiles(files) {
   const errors = []
   for (const file of Array.from(files)) {
     try {
-      const id = await importFile(file)
+      const { id, conflict } = await importFile(file)
       successes.push(id)
+      if (conflict) ui.conflicts.push(conflict)
     } catch (err) {
       errors.push(file.name)
       console.warn('Failed to import', file.name, err)
@@ -104,13 +177,38 @@ export async function importFiles(files) {
 }
 
 /**
- * Remove an image from the pool (and any assignments pointing to it).
+ * Resolve a size conflict.
+ * choice 'keep'    — new image stays in pool unlinked; existing source unchanged.
+ * choice 'replace' — new image takes the existing source's slot.
+ * @param {{cursorId:string, sizeStr:string, newId:string, existingId:string, inPrimary:boolean}} conflict
+ * @param {'keep'|'replace'} choice
+ */
+export function resolveSizeConflict(conflict, choice) {
+  if (choice === 'replace') {
+    if (conflict.inPrimary) {
+      project.assignments[conflict.cursorId] = conflict.newId
+    } else {
+      if (!project.sizeLinks[conflict.cursorId]) project.sizeLinks[conflict.cursorId] = {}
+      project.sizeLinks[conflict.cursorId][conflict.sizeStr] = conflict.newId
+    }
+  }
+  const idx = ui.conflicts.indexOf(conflict)
+  if (idx !== -1) ui.conflicts.splice(idx, 1)
+}
+
+/**
+ * Remove an image from the pool (and any assignments / size links pointing to it).
  * @param {string} imageId
  */
 export function removeImage(imageId) {
   delete project.images[imageId]
   for (const [cursorId, assigned] of Object.entries(project.assignments)) {
     if (assigned === imageId) project.assignments[cursorId] = null
+  }
+  for (const links of Object.values(project.sizeLinks)) {
+    for (const [sizeStr, linkId] of Object.entries(links)) {
+      if (linkId === imageId) delete links[sizeStr]
+    }
   }
 }
 
@@ -145,40 +243,83 @@ export function setHotspot(imageId, x, y) {
   project.images[imageId].hotspot = { x, y }
 }
 
-// ── Size overrides ────────────────────────────────────────────────────────────
+// ── Size links ────────────────────────────────────────────────────────────────
 
 /**
+ * Explicitly set a size link: a specific image to use for a given cursor role
+ * at a given native pixel size.
+ * @param {string} cursorId
+ * @param {string|number} size  pixel width (image must be square)
  * @param {string} imageId
- * @param {number} size
- * @param {string} dataUrl
- * @param {{x:number,y:number}|null} [hotspot]
  */
-export function setSizeOverride(imageId, size, dataUrl, hotspot = null) {
-  if (!project.images[imageId]) return
-  project.images[imageId].sizeOverrides[String(size)] = { data: dataUrl, hotspot }
+export function setSizeLink(cursorId, size, imageId) {
+  if (!project.sizeLinks[cursorId]) project.sizeLinks[cursorId] = {}
+  project.sizeLinks[cursorId][String(size)] = imageId
 }
 
-/** @param {string} imageId @param {number} size */
-export function removeSizeOverride(imageId, size) {
-  if (!project.images[imageId]) return
-  delete project.images[imageId].sizeOverrides[String(size)]
+/**
+ * Remove a size link for a cursor role.
+ * @param {string} cursorId
+ * @param {string|number} size
+ */
+export function removeSizeLink(cursorId, size) {
+  if (!project.sizeLinks[cursorId]) return
+  delete project.sizeLinks[cursorId][String(size)]
 }
 
-/** @param {string} imageId @param {number} size @param {number} x @param {number} y */
-export function setOverrideHotspot(imageId, size, x, y) {
-  const ov = project.images[imageId]?.sizeOverrides[String(size)]
-  if (ov) ov.hotspot = { x, y }
+// ── Scale preferences ─────────────────────────────────────────────────────────
+
+/**
+ * Set (or clear) the NN scaling direction preference for a cursor at a specific output size.
+ * @param {string} cursorId
+ * @param {string|number} size
+ * @param {'up'|'down'|null} pref  pass null to revert to auto (prefers upscale)
+ */
+export function setScalePref(cursorId, size, pref) {
+  const s = String(size)
+  if (pref === null) {
+    delete project.scalePrefs[cursorId]?.[s]
+  } else {
+    if (!project.scalePrefs[cursorId]) project.scalePrefs[cursorId] = {}
+    project.scalePrefs[cursorId][s] = pref
+  }
+}
+
+/**
+ * Collect all available native sources for a cursor role (assignment + size links),
+ * sorted by native size ascending.
+ * @param {string} cursorId
+ * @returns {Array<{data:string, hotspot:{x:number,y:number}, dims:{width:number,height:number}, imageId:string}>}
+ */
+export function getSourcesForCursor(cursorId) {
+  const sources = []
+  const primaryId = project.assignments[cursorId]
+  if (primaryId && project.images[primaryId]) {
+    const img = project.images[primaryId]
+    sources.push({ data: img.data, hotspot: img.hotspot, dims: img.dims, imageId: primaryId })
+  }
+  const links = project.sizeLinks[cursorId] ?? {}
+  for (const [, imgId] of Object.entries(links)) {
+    if (imgId && project.images[imgId]) {
+      const img = project.images[imgId]
+      sources.push({ data: img.data, hotspot: img.hotspot, dims: img.dims, imageId: imgId })
+    }
+  }
+  sources.sort((a, b) => a.dims.width - b.dims.width)
+  return sources
 }
 
 // ── Save / Load ───────────────────────────────────────────────────────────────
 
 export function saveProject() {
   const json = JSON.stringify({
-    version: project.version,
+    version: SCHEMA_VERSION,
     meta: { ...project.meta },
     images: project.images,
     assignments: { ...project.assignments },
+    sizeLinks: project.sizeLinks,
     flips: { ...project.flips },
+    scalePrefs: project.scalePrefs,
     config: { ...project.config },
   }, null, 2)
 
@@ -200,25 +341,35 @@ export function saveProject() {
 export function loadProject(jsonText) {
   const data = JSON.parse(jsonText)
 
-  project.version = data.version ?? '1.0'
+  if (data.version !== SCHEMA_VERSION) {
+    throw new Error(`Unsupported project version "${data.version ?? '(none)'}". This build requires v${SCHEMA_VERSION}.`)
+  }
+
+  project.version = SCHEMA_VERSION
   project.meta = data.meta ?? { name: 'MyTheme', description: '' }
   project.images = data.images ?? {}
   project.assignments = data.assignments ?? {}
+  project.sizeLinks = data.sizeLinks ?? {}
   project.flips = data.flips ?? {}
+  project.scalePrefs = data.scalePrefs ?? {}
   project.config = data.config ?? { sizes: [24, 32, 48] }
 
   _refreshIdCounter()
   ui.selectedCursorId = null
+  ui.conflicts = []
 }
 
 export function resetProject() {
   project.meta = { name: 'MyTheme', description: '' }
   project.images = {}
   project.assignments = {}
+  project.sizeLinks = {}
   project.flips = {}
+  project.scalePrefs = {}
   project.config = { sizes: [24, 32, 48] }
   _idCounter = 0
   ui.selectedCursorId = null
+  ui.conflicts = []
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -230,4 +381,3 @@ export function showToast(message, type = 'info') {
   ui.toast = { message, type }
   _toastTimer = setTimeout(() => { ui.toast = null }, 3500)
 }
-

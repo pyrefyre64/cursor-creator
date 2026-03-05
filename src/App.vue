@@ -4,6 +4,7 @@ import ProjectBar from './components/ProjectBar.vue'
 import ImagePool from './components/ImagePool.vue'
 import AssignmentGrid from './components/AssignmentGrid.vue'
 import CursorEditor from './components/CursorEditor.vue'
+import ConflictDialog from './components/ConflictDialog.vue'
 </script>
 
 <template>
@@ -15,6 +16,9 @@ import CursorEditor from './components/CursorEditor.vue'
       <AssignmentGrid class="panel panel-grid" />
       <CursorEditor class="panel panel-editor" />
     </div>
+
+    <!-- Size-conflict resolution dialog -->
+    <ConflictDialog v-if="ui.conflicts.length" />
 
     <!-- Toast notifications -->
     <Transition name="toast">

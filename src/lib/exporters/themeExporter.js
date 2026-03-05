@@ -1,8 +1,8 @@
 import { gzip } from 'fflate'
 import { buildXcursor } from '../writers/xcursor.js'
 import { TarWriter } from '../writers/tarWriter.js'
-import { processImage, processOverride } from '../imageProcessor.js'
-import { project } from '../../store/project.js'
+import { processFromSources } from '../imageProcessor.js'
+import { project, getSourcesForCursor } from '../../store/project.js'
 import { getCursorById } from '../../data/cursorDatabase.js'
 
 /**
@@ -17,7 +17,8 @@ export async function exportTheme() {
 
   if (sizes.length === 0) throw new Error('No output sizes selected.')
 
-  const assignedEntries = Object.entries(project.assignments).filter(([, id]) => id && project.images[id])
+  const assignedEntries = Object.keys(project.assignments)
+    .filter(cursorId => getSourcesForCursor(cursorId).length > 0)
   if (assignedEntries.length === 0) throw new Error('No cursor images assigned.')
 
   const tar = new TarWriter()
@@ -36,40 +37,21 @@ export async function exportTheme() {
   // Track which alias names are already claimed (to avoid duplicate symlinks)
   const usedNames = new Set()
 
-  for (const [cursorId, imageId] of assignedEntries) {
-    const imageEntry = project.images[imageId]
+  for (const cursorId of assignedEntries) {
     const cursor = getCursorById(cursorId)
-    if (!cursor || !imageEntry) continue
+    if (!cursor) continue
 
     usedNames.add(cursorId)
 
     const flip = project.flips[cursorId] ?? { x: false, y: false }
+    const sources = getSourcesForCursor(cursorId)
 
     // Build one frame per output size
     const frames = []
     for (const size of sizes) {
-      const override = imageEntry.sizeOverrides?.[String(size)]
       try {
-        if (override?.data) {
-          const frame = await processOverride(
-            override.data,
-            size,
-            override.hotspot ?? null,
-            imageEntry.hotspot ?? { x: 0, y: 0 },
-            imageEntry.dims ?? { width: size, height: size },
-            flip,
-          )
-          frames.push(frame)
-        } else {
-          const frame = await processImage(
-            imageEntry.data,
-            size,
-            imageEntry.hotspot ?? { x: 0, y: 0 },
-            imageEntry.dims ?? { width: size, height: size },
-            flip,
-          )
-          frames.push(frame)
-        }
+        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+        frames.push(await processFromSources(sources, size, flip, scalePref))
       } catch (err) {
         console.warn(`Skipping size ${size} for ${cursorId}:`, err)
       }

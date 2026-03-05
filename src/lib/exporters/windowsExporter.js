@@ -8,8 +8,8 @@
 
 import { zipSync } from 'fflate'
 import { buildAni } from '../writers/aniWriter.js'
-import { processImage, processOverride } from '../imageProcessor.js'
-import { project } from '../../store/project.js'
+import { processFromSources } from '../imageProcessor.js'
+import { project, getSourcesForCursor } from '../../store/project.js'
 import { CURSORS } from '../../data/cursorDatabase.js'
 
 // Fixed order required by HKCU\Control Panel\Cursors registry values.
@@ -73,33 +73,27 @@ export async function exportWindowsCursors() {
 
   if (sizes.length === 0) throw new Error('No output sizes selected.')
 
-  const assignedEntries = Object.entries(project.assignments)
-    .filter(([, id]) => id && project.images[id])
-  if (assignedEntries.length === 0) throw new Error('No cursor images assigned.')
+  const assignedCursorIds = Object.keys(project.assignments)
+    .filter(cursorId => getSourcesForCursor(cursorId).length > 0)
+  if (assignedCursorIds.length === 0) throw new Error('No cursor images assigned.')
 
   const cursorById = Object.fromEntries(CURSORS.map(c => [c.id, c]))
   const zipFiles = {}
   const filesByCursorId = {}
 
-  for (const [cursorId, imageId] of assignedEntries) {
-    const imageEntry = project.images[imageId]
+  for (const cursorId of assignedCursorIds) {
     const cursor = cursorById[cursorId]
-    if (!imageEntry || !cursor) continue
+    if (!cursor) continue
 
     const filename = _filename(cursor)
     const flip = project.flips[cursorId] ?? { x: false, y: false }
+    const sources = getSourcesForCursor(cursorId)
 
     const frames = []
     for (const size of sizes) {
-      const override = imageEntry.sizeOverrides?.[String(size)]
       try {
-        frames.push(override?.data
-          ? await processOverride(override.data, size, override.hotspot ?? null,
-              imageEntry.hotspot ?? { x: 0, y: 0 },
-              imageEntry.dims   ?? { width: size, height: size }, flip)
-          : await processImage(imageEntry.data, size,
-              imageEntry.hotspot ?? { x: 0, y: 0 },
-              imageEntry.dims   ?? { width: size, height: size }, flip))
+        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+        frames.push(await processFromSources(sources, size, flip, scalePref))
       } catch (err) {
         console.warn(`Skipping size ${size} for ${cursorId} (windows):`, err)
       }

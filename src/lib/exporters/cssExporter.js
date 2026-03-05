@@ -5,8 +5,8 @@
  * Targets the largest configured size ≤ 32px (CSS cursors rarely need more).
  */
 
-import { processImage, processOverride } from '../imageProcessor.js'
-import { project } from '../../store/project.js'
+import { processFromSources } from '../imageProcessor.js'
+import { project, getSourcesForCursor } from '../../store/project.js'
 import { CURSORS } from '../../data/cursorDatabase.js'
 
 // Best-effort CSS cursor keyword fallbacks for each cursor role.
@@ -66,9 +66,9 @@ export async function exportCssStylesheet() {
   // Prefer the largest size that is ≤ 32px; fall back to the smallest available.
   const cssSize = [...sizes].reverse().find(s => s <= 32) ?? sizes[0]
 
-  const assignedEntries = Object.entries(project.assignments)
-    .filter(([, id]) => id && project.images[id])
-  if (assignedEntries.length === 0) throw new Error('No cursor images assigned.')
+  const assignedCursorIds = Object.keys(project.assignments)
+    .filter(cursorId => getSourcesForCursor(cursorId).length > 0)
+  if (assignedCursorIds.length === 0) throw new Error('No cursor images assigned.')
 
   const cursorById = Object.fromEntries(CURSORS.map(c => [c.id, c]))
 
@@ -79,23 +79,17 @@ export async function exportCssStylesheet() {
     '',
   ]
 
-  for (const [cursorId, imageId] of assignedEntries) {
-    const imageEntry = project.images[imageId]
+  for (const cursorId of assignedCursorIds) {
     const cursor = cursorById[cursorId]
-    if (!imageEntry || !cursor) continue
+    if (!cursor) continue
 
     const flip = project.flips[cursorId] ?? { x: false, y: false }
-    const override = imageEntry.sizeOverrides?.[String(cssSize)]
+    const sources = getSourcesForCursor(cursorId)
 
     let frame
     try {
-      frame = override?.data
-        ? await processOverride(override.data, cssSize, override.hotspot ?? null,
-            imageEntry.hotspot ?? { x: 0, y: 0 },
-            imageEntry.dims   ?? { width: cssSize, height: cssSize }, flip)
-        : await processImage(imageEntry.data, cssSize,
-            imageEntry.hotspot ?? { x: 0, y: 0 },
-            imageEntry.dims   ?? { width: cssSize, height: cssSize }, flip)
+      const scalePref = project.scalePrefs[cursorId]?.[String(cssSize)] ?? null
+      frame = await processFromSources(sources, cssSize, flip, scalePref)
     } catch (err) {
       console.warn(`Skipping ${cursorId} (css):`, err)
       continue
@@ -106,7 +100,7 @@ export async function exportCssStylesheet() {
     const cls      = _slug(cursor.label)
 
     lines.push(`/* ${cursor.label} */`)
-    lines.push(`.cursor-${cls} { cursor: url("${dataUrl}") ${frame.hotspotX} ${frame.hotspotY}, ${fallback}; }`)
+    lines.push(`.cursor-${cls} { cursor: url("${dataUrl}") ${frame.xhot} ${frame.yhot}, ${fallback}; }`)
     lines.push('')
   }
 

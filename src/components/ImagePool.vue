@@ -9,16 +9,32 @@ const fileInput = ref(null)
 
 const images = computed(() => Object.values(project.images))
 
-const assignedIds = computed(() => new Set(Object.values(project.assignments).filter(Boolean)))
+// All role badges for an image: both direct assignments and size links
+const badgeMap = computed(() => {
+  const map = {}
+  const add = (imgId, cursorId, sizeStr) => {
+    if (!map[imgId]) map[imgId] = []
+    map[imgId].push({ cursorId, sizeStr })
+  }
+  for (const [cursorId, imgId] of Object.entries(project.assignments)) {
+    if (!imgId || !project.images[imgId]) continue
+    add(imgId, cursorId, String(project.images[imgId].dims.width))
+  }
+  for (const [cursorId, links] of Object.entries(project.sizeLinks)) {
+    for (const [sizeStr, imgId] of Object.entries(links)) {
+      if (!imgId) continue
+      add(imgId, cursorId, sizeStr)
+    }
+  }
+  return map
+})
 
-function isAssigned(imageId) {
-  return assignedIds.value.has(imageId)
+function badgesFor(imageId) {
+  return badgeMap.value[imageId] ?? []
 }
 
-function assignedToAll(imageId) {
-  return Object.entries(project.assignments)
-    .filter(([, v]) => v === imageId)
-    .map(([k]) => k)
+function isLinked(imageId) {
+  return badgesFor(imageId).length > 0
 }
 
 async function onFilesSelected(e) {
@@ -78,7 +94,7 @@ function onRoleClick(role) {
         v-for="img in images"
         :key="img.id"
         class="image-item"
-        :class="{ 'is-assigned': isAssigned(img.id), dragging: ui.draggingImageId === img.id }"
+        :class="{ 'is-assigned': isLinked(img.id), dragging: ui.draggingImageId === img.id }"
         draggable="true"
         @dragstart="onDragStart($event, img.id)"
         @dragend="onDragEnd"
@@ -88,11 +104,11 @@ function onRoleClick(role) {
           <span class="item-name" :title="img.filename">{{ img.filename }}</span>
           <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
           <button
-            v-for="role in assignedToAll(img.id)"
-            :key="role"
+            v-for="b in badgesFor(img.id)"
+            :key="b.cursorId + b.sizeStr"
             class="item-assigned role-link"
-            @click.stop="onRoleClick(role)"
-          >→ {{ role }}</button>
+            @click.stop="onRoleClick(b.cursorId)"
+          >→ {{ b.cursorId }} {{ b.sizeStr }}px</button>
         </div>
         <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
       </div>
