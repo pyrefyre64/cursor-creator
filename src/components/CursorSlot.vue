@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { project, ui, setAssignment, removeAssignment, toggleFlip } from '../store/project.js'
+import { project, ui, removeAssignment, toggleFlip, getSourcesForCursor, linkPoolImageToCursor } from '../store/project.js'
 
 const props = defineProps({
   cursor: { type: Object, required: true },
@@ -17,6 +17,14 @@ const thumbTransform = computed(() => {
   return parts.length ? parts.join(' ') : undefined
 })
 
+const nativeSizes = computed(() =>
+  getSourcesForCursor(props.cursor.id).map(s => ({ imageId: s.imageId, width: s.dims.width }))
+)
+
+function focusPoolImage(imageId) {
+  ui.focusImageId = imageId
+}
+
 function onClick() {
   ui.selectedCursorId = props.cursor.id
 }
@@ -29,10 +37,20 @@ function onDragOver(e) {
 function onDrop(e) {
   e.preventDefault()
   const imageId = e.dataTransfer.getData('text/plain')
-  if (imageId) {
-    setAssignment(props.cursor.id, imageId)
-    ui.selectedCursorId = props.cursor.id
-  }
+  if (!imageId) return
+
+  const cursorId = props.cursor.id
+
+  // Same image already linked → no-op
+  const alreadyLinked =
+    project.assignments[cursorId] === imageId ||
+    Object.values(project.sizeLinks[cursorId] ?? {}).includes(imageId)
+  if (alreadyLinked) return
+
+  // Smart routing: sets primary if unassigned, adds sizeLink if new size,
+  // or pushes to ui.conflicts if that size already has a source.
+  linkPoolImageToCursor(imageId, cursorId)
+  ui.selectedCursorId = cursorId
 }
 
 function onClearClick(e) {
@@ -58,6 +76,14 @@ function onClearClick(e) {
     <div class="slot-info">
       <span class="slot-name" :title="cursor.id">{{ cursor.label }}</span>
       <span class="slot-id">{{ cursor.id }}</span>
+      <div v-if="nativeSizes.length" class="slot-sizes">
+        <button
+          v-for="s in nativeSizes"
+          :key="s.imageId"
+          class="size-pill"
+          @click.stop="focusPoolImage(s.imageId)"
+        >{{ s.width }}px</button>
+      </div>
     </div>
     <div v-if="image" class="flip-controls">
       <button class="flip-btn" :class="{ active: flip.x }" @click.stop="toggleFlip(cursor.id, 'x')" title="Mirror horizontally">↔</button>
@@ -124,6 +150,24 @@ function onClearClick(e) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.slot-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.size-pill {
+  font-size: 9px;
+  font-family: monospace;
+  color: #4d5760;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  line-height: 1.3;
+}
+.size-pill:hover { color: #7f8c8d; }
 
 .flip-controls {
   display: flex;

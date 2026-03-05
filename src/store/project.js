@@ -29,6 +29,8 @@ export const ui = reactive({
   selectedCursorId: null,
   /** Image id being dragged from the pool */
   draggingImageId: null,
+  /** Image id to scroll-to and highlight in the pool (cleared after handling) */
+  focusImageId: null,
   /** Toast notification */
   toast: null,    // { message: string, type: 'info'|'error' }
   /** When true, assignment grid shows only the 15 Windows-mapped cursor roles */
@@ -197,13 +199,38 @@ export function resolveSizeConflict(conflict, choice) {
 }
 
 /**
+ * Link an already-imported pool image to a cursor role (as primary or sizeLink).
+ * Equivalent to dragging a pool image into the cursor editor's sources list.
+ * Pushes a conflict to ui.conflicts if a same-size source already exists.
+ * @param {string} imageId
+ * @param {string} cursorId
+ */
+export function linkPoolImageToCursor(imageId, cursorId) {
+  const img = project.images[imageId]
+  if (!img) return
+  const conflict = _routeToRole(imageId, cursorId, img.dims.width, img.dims.height)
+  if (conflict) ui.conflicts.push(conflict)
+}
+
+/**
  * Remove an image from the pool (and any assignments / size links pointing to it).
  * @param {string} imageId
  */
 export function removeImage(imageId) {
   delete project.images[imageId]
   for (const [cursorId, assigned] of Object.entries(project.assignments)) {
-    if (assigned === imageId) project.assignments[cursorId] = null
+    if (assigned !== imageId) continue
+    // Promote the smallest remaining sizeLink (excluding the deleted image) to primary
+    const remaining = Object.entries(project.sizeLinks[cursorId] ?? {})
+      .filter(([, id]) => id !== imageId)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    if (remaining.length) {
+      const [sizeStr, newPrimaryId] = remaining[0]
+      project.assignments[cursorId] = newPrimaryId
+      delete project.sizeLinks[cursorId][sizeStr]
+    } else {
+      project.assignments[cursorId] = null
+    }
   }
   for (const links of Object.values(project.sizeLinks)) {
     for (const [sizeStr, linkId] of Object.entries(links)) {

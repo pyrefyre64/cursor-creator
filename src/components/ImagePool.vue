@@ -1,13 +1,30 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { project, ui, importFiles, removeImage, showToast } from '../store/project.js'
 import { getHandlerForFile, getAcceptString } from '../lib/formatRegistry.js'
 
 const acceptString = getAcceptString()
 
 const fileInput = ref(null)
-const assignedOpen   = ref(true)
-const unassignedOpen = ref(true)
+const assignedOpen      = ref(true)
+const unassignedOpen    = ref(true)
+const highlightedImageId = ref(null)
+let   _highlightTimer    = null
+
+watch(() => ui.focusImageId, (imageId) => {
+  if (!imageId) return
+  // Ensure the containing section is open
+  if (assignedImages.value.some(img => img.id === imageId))   assignedOpen.value = true
+  else if (unassignedImages.value.some(img => img.id === imageId)) unassignedOpen.value = true
+  // Scroll + highlight after DOM updates
+  nextTick(() => {
+    document.getElementById(`pool-img-${imageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    if (_highlightTimer) clearTimeout(_highlightTimer)
+    highlightedImageId.value = imageId
+    _highlightTimer = setTimeout(() => { highlightedImageId.value = null }, 1400)
+    ui.focusImageId = null
+  })
+})
 
 const images = computed(() => Object.values(project.images))
 
@@ -105,8 +122,9 @@ function onRoleClick(role) {
           <div
             v-for="img in assignedImages"
             :key="img.id"
+            :id="`pool-img-${img.id}`"
             class="image-item"
-            :class="{ dragging: ui.draggingImageId === img.id }"
+            :class="{ dragging: ui.draggingImageId === img.id, highlight: highlightedImageId === img.id }"
             draggable="true"
             @dragstart="onDragStart($event, img.id)"
             @dragend="onDragEnd"
@@ -137,8 +155,9 @@ function onRoleClick(role) {
           <div
             v-for="img in unassignedImages"
             :key="img.id"
+            :id="`pool-img-${img.id}`"
             class="image-item"
-            :class="{ dragging: ui.draggingImageId === img.id }"
+            :class="{ dragging: ui.draggingImageId === img.id, highlight: highlightedImageId === img.id }"
             draggable="true"
             @dragstart="onDragStart($event, img.id)"
             @dragend="onDragEnd"
@@ -252,6 +271,7 @@ function onRoleClick(role) {
 }
 .image-item:hover { background: #31363b; }
 .image-item.dragging { opacity: 0.5; }
+.image-item.highlight { background: #1d3a4a; transition: background 0.8s; }
 
 .item-thumb {
   width: 28px;

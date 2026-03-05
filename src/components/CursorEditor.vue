@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { project, ui, setHotspot, setSizeLink, removeSizeLink, getSourcesForCursor, importFileForCursor, showToast } from '../store/project.js'
+import { project, ui, setHotspot, setSizeLink, removeSizeLink, getSourcesForCursor, importFileForCursor, linkPoolImageToCursor, showToast } from '../store/project.js'
 import { getCursorById } from '../data/cursorDatabase.js'
 import { pickBestSource, hasScaleChoice } from '../lib/imageProcessor.js'
 import HotspotCanvas from './HotspotCanvas.vue'
@@ -59,7 +59,16 @@ function removeSource(source) {
     }
   }
   if (project.assignments[cursorId] === source.imageId) {
-    project.assignments[cursorId] = null
+    // Promote the smallest remaining sizeLink to primary, if one exists
+    const remaining = Object.entries(project.sizeLinks[cursorId] ?? {})
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    if (remaining.length) {
+      const [sizeStr, newPrimaryId] = remaining[0]
+      project.assignments[cursorId] = newPrimaryId
+      removeSizeLink(cursorId, sizeStr)
+    } else {
+      project.assignments[cursorId] = null
+    }
   }
 }
 
@@ -91,6 +100,28 @@ function onSourceHotspotY(source, e) {
 
 function thumbDisplaySize(nativeSize) {
   return Math.min(nativeSize, 64)
+}
+
+// ── Drop pool image onto sources list ──────────────────────────────────────
+const sourcesDropOver = ref(false)
+
+function onSourcesDragOver(e) {
+  if (!ui.draggingImageId || !cursor.value) return
+  e.preventDefault()
+  sourcesDropOver.value = true
+}
+
+function onSourcesDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) sourcesDropOver.value = false
+}
+
+function onSourcesDrop(e) {
+  sourcesDropOver.value = false
+  if (!cursor.value) return
+  const imageId = e.dataTransfer.getData('text/plain') || ui.draggingImageId
+  if (!imageId) return
+  e.preventDefault()
+  linkPoolImageToCursor(imageId, cursor.value.id)
 }
 </script>
 
@@ -144,7 +175,13 @@ function thumbDisplaySize(nativeSize) {
         </section>
 
         <!-- Native sources list -->
-        <section class="section">
+        <section
+          class="section"
+          :class="{ 'sources-drop-over': sourcesDropOver }"
+          @dragover="onSourcesDragOver"
+          @dragleave="onSourcesDragLeave"
+          @drop="onSourcesDrop"
+        >
           <div class="section-label">
             Native sources
             <button class="add-source-btn" @click="addSourceInput?.click()">+ Add</button>
@@ -340,6 +377,12 @@ function thumbDisplaySize(nativeSize) {
 .dims-note { color: #4d5760; font-size: 10px; }
 
 /* ── Native sources ─────────────────────────────────────── */
+.sources-drop-over .sources-list {
+  outline: 2px dashed #3daee9;
+  outline-offset: 2px;
+  border-radius: 5px;
+}
+
 .sources-list {
   display: flex;
   flex-direction: column;
