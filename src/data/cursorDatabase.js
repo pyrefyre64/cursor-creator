@@ -449,19 +449,32 @@ export function getCursorById(id) {
  */
 export function detectCursorFromFilename(basename) {
   const lower = basename.toLowerCase().replace(/[^a-z0-9_\-]/g, '_')
+  // Strip trailing size suffix produced by PNG export (e.g. watch_32 → watch)
+  const stemmed = lower.replace(/_\d+$/, '')
 
   // 1. Exact match on primary id
   if (CURSOR_BY_ID[basename]) return basename
   if (CURSOR_BY_ID[lower]) return lower
+  if (stemmed !== lower && CURSOR_BY_ID[stemmed]) return stemmed
 
   // 2. Exact match on aliases
   for (const cursor of CURSORS) {
     if (cursor.aliases.some(a => a.toLowerCase() === lower)) return cursor.id
   }
+  if (stemmed !== lower) {
+    for (const cursor of CURSORS) {
+      if (cursor.aliases.some(a => a.toLowerCase() === stemmed)) return cursor.id
+    }
+  }
 
   // 3. Pattern matching
   for (const cursor of CURSORS) {
     if (cursor.detect.some(re => re.test(basename))) return cursor.id
+  }
+  if (stemmed !== lower) {
+    for (const cursor of CURSORS) {
+      if (cursor.detect.some(re => re.test(stemmed))) return cursor.id
+    }
   }
 
   return null
