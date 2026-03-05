@@ -86,6 +86,13 @@ export async function importFile(file) {
       x: Math.floor(parsed.width / 2),
       y: Math.floor(parsed.height / 2),
     },
+    ...(parsed.frames?.length > 1 && {
+      frames: parsed.frames.map(f => ({
+        data: f.dataUrl,
+        hotspot: f.hotspot ?? { x: Math.floor(f.width / 2), y: Math.floor(f.height / 2) },
+        delay: f.delay,
+      })),
+    }),
   }
 
   const detectedRole = detectCursorFromFilename(basename)
@@ -266,8 +273,10 @@ export function toggleFlip(cursorId, axis) {
 
 /** @param {string} imageId @param {number} x @param {number} y */
 export function setHotspot(imageId, x, y) {
-  if (!project.images[imageId]) return
-  project.images[imageId].hotspot = { x, y }
+  const img = project.images[imageId]
+  if (!img) return
+  img.hotspot = { x, y }
+  if (img.frames) img.frames.forEach(f => { f.hotspot = { x, y } })
 }
 
 // ── Size links ────────────────────────────────────────────────────────────────

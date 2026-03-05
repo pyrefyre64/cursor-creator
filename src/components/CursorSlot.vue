@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { project, ui, removeAssignment, toggleFlip, getSourcesForCursor, linkPoolImageToCursor } from '../store/project.js'
+import AnimatedThumb from './AnimatedThumb.vue'
 
 const props = defineProps({
   cursor: { type: Object, required: true },
@@ -70,13 +71,15 @@ function onClearClick(e) {
     @drop="onDrop"
   >
     <div class="thumb-area">
-      <img v-if="image" :src="image.data" class="thumb" :title="image.filename" :style="thumbTransform ? { transform: thumbTransform } : undefined" />
+      <AnimatedThumb v-if="image?.frames?.length > 1" :frames="image.frames" :dims="image.dims" :size="32" class="thumb" :title="image.filename" :style="thumbTransform ? { transform: thumbTransform } : undefined" />
+      <img v-else-if="image" :src="image.data" class="thumb" :title="image.filename" :style="thumbTransform ? { transform: thumbTransform } : undefined" />
       <div v-else class="thumb-placeholder" />
     </div>
     <div class="slot-info">
       <span class="slot-name" :title="cursor.id">{{ cursor.label }}</span>
       <span class="slot-id">{{ cursor.id }}</span>
       <div v-if="nativeSizes.length" class="slot-sizes">
+        <span v-if="image?.frames?.length > 1" class="anim-pill">▶ {{ image.frames.length }}f</span>
         <button
           v-for="s in nativeSizes"
           :key="s.imageId"
@@ -168,6 +171,13 @@ function onClearClick(e) {
   line-height: 1.3;
 }
 .size-pill:hover { color: #7f8c8d; }
+
+.anim-pill {
+  font-size: 9px;
+  color: #f39c12;
+  font-family: monospace;
+  line-height: 1.3;
+}
 
 .flip-controls {
   display: flex;

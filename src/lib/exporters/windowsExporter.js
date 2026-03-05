@@ -8,7 +8,7 @@
 
 import { zipSync } from 'fflate'
 import { buildAni } from '../writers/aniWriter.js'
-import { processFromSources } from '../imageProcessor.js'
+import { processFromSources, processAnimFrame } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 import { CURSORS } from '../../data/cursorDatabase.js'
 
@@ -88,19 +88,38 @@ export async function exportWindowsCursors() {
     const filename = _filename(cursor)
     const flip = project.flips[cursorId] ?? { x: false, y: false }
     const sources = getSourcesForCursor(cursorId)
+    const primaryImg = project.images[project.assignments[cursorId]]
+    const isAnimated = primaryImg?.frames?.length > 1
 
-    const frames = []
-    for (const size of sizes) {
-      try {
-        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
-        frames.push(await processFromSources(sources, size, flip, scalePref))
-      } catch (err) {
-        console.warn(`Skipping size ${size} for ${cursorId} (windows):`, err)
+    let animFrames
+    if (isAnimated) {
+      animFrames = []
+      for (const frame of primaryImg.frames) {
+        const sizeFrames = []
+        for (const size of sizes) {
+          try {
+            sizeFrames.push(await processAnimFrame(frame, primaryImg.dims, size, flip))
+          } catch (err) {
+            console.warn(`Skipping anim frame for size ${size}, cursor ${cursorId} (windows):`, err)
+          }
+        }
+        if (sizeFrames.length) animFrames.push({ delay: frame.delay, sizeFrames })
       }
+    } else {
+      const sizeFrames = []
+      for (const size of sizes) {
+        try {
+          const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+          sizeFrames.push(await processFromSources(sources, size, flip, scalePref))
+        } catch (err) {
+          console.warn(`Skipping size ${size} for ${cursorId} (windows):`, err)
+        }
+      }
+      animFrames = sizeFrames.length ? [{ delay: 50, sizeFrames }] : []
     }
 
-    if (!frames.length) continue
-    zipFiles[filename] = await buildAni(frames)
+    if (!animFrames.length) continue
+    zipFiles[filename] = await buildAni(animFrames)
     filesByCursorId[cursorId] = filename
   }
 

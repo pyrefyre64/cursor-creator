@@ -5,6 +5,7 @@ import { exportTheme } from '../lib/exporters/themeExporter.js'
 import { exportWindowsCursors } from '../lib/exporters/windowsExporter.js'
 import { exportPngZip } from '../lib/exporters/pngExporter.js'
 import { exportCssStylesheet } from '../lib/exporters/cssExporter.js'
+import { exportApngZip } from '../lib/exporters/apngExporter.js'
 
 const ALL_SIZES = [24, 32, 48, 64, 96]
 const loadInput = ref(null)
@@ -66,9 +67,11 @@ async function _runDropdownExport(fn, successMsg) {
   }
 }
 
-const onExportWindows = () => _runDropdownExport(exportWindowsCursors, 'Windows cursors exported!')
-const onExportPng     = () => _runDropdownExport(exportPngZip,         'PNG zip exported!')
-const onExportCss     = () => _runDropdownExport(exportCssStylesheet,  'CSS stylesheet exported!')
+const onExportWindows  = () => _runDropdownExport(exportWindowsCursors,           'Windows cursors exported!')
+const onExportPng      = () => _runDropdownExport(exportPngZip,                   'PNG zip exported!')
+const onExportCss      = () => _runDropdownExport(exportCssStylesheet,            'CSS stylesheet exported!')
+const onExportApng     = () => _runDropdownExport(() => exportApngZip(false),     'APNG zip exported!')
+const onExportApngAnim = () => _runDropdownExport(() => exportApngZip(true),      'Animated APNG zip exported!')
 </script>
 
 <template>
@@ -119,8 +122,11 @@ const onExportCss     = () => _runDropdownExport(exportCssStylesheet,  'CSS styl
         <div v-if="dropdownOpen" class="export-backdrop" @click="dropdownOpen = false"></div>
         <div v-if="dropdownOpen" class="export-menu">
           <button @click="onExportWindows">Windows cursors (.ani + .inf)</button>
-          <button @click="onExportPng">Raw PNG files (.zip)</button>
+          <button @click="onExportPng">Raw PNG frames (.zip)</button>
           <button @click="onExportCss">CSS stylesheet (.css)</button>
+          <div class="menu-divider"></div>
+          <button @click="onExportApngAnim">Animated APNG — animated only</button>
+          <button @click="onExportApng">Animated APNG — all cursors</button>
         </div>
       </div>
       <input ref="loadInput" type="file" accept=".json" style="display:none" @change="onLoadFile" />
@@ -252,5 +258,10 @@ button:disabled {
 }
 .export-menu button:hover {
   background: #31363b;
+}
+.menu-divider {
+  height: 1px;
+  background: #3d4347;
+  margin: 3px 0;
 }
 </style>

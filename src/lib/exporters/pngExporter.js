@@ -5,7 +5,7 @@
  */
 
 import { zipSync } from 'fflate'
-import { processFromSources } from '../imageProcessor.js'
+import { processFromSources, processAnimFrame } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 
 async function _pixelsToPng(pixels, width, height) {
@@ -33,13 +33,31 @@ export async function exportPngZip() {
     const flip = project.flips[cursorId] ?? { x: false, y: false }
     const sources = getSourcesForCursor(cursorId)
 
-    for (const size of sizes) {
-      try {
-        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
-        const frame = await processFromSources(sources, size, flip, scalePref)
-        zipFiles[`${cursorId}_${size}.png`] = await _pixelsToPng(frame.pixels, size, size)
-      } catch (err) {
-        console.warn(`Skipping size ${size} for ${cursorId} (png):`, err)
+    const primaryImg = project.images[project.assignments[cursorId]]
+    const isAnimated = primaryImg?.frames?.length > 1
+
+    if (isAnimated) {
+      for (let fi = 0; fi < primaryImg.frames.length; fi++) {
+        const frame = primaryImg.frames[fi]
+        const tag = String(fi).padStart(2, '0')
+        for (const size of sizes) {
+          try {
+            const result = await processAnimFrame(frame, primaryImg.dims, size, flip)
+            zipFiles[`${cursorId}_${size}_f${tag}.png`] = await _pixelsToPng(result.pixels, size, size)
+          } catch (err) {
+            console.warn(`Skipping frame ${fi} size ${size} for ${cursorId} (png):`, err)
+          }
+        }
+      }
+    } else {
+      for (const size of sizes) {
+        try {
+          const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+          const result = await processFromSources(sources, size, flip, scalePref)
+          zipFiles[`${cursorId}_${size}.png`] = await _pixelsToPng(result.pixels, size, size)
+        } catch (err) {
+          console.warn(`Skipping size ${size} for ${cursorId} (png):`, err)
+        }
       }
     }
   }

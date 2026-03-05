@@ -1,7 +1,7 @@
 import { gzip } from 'fflate'
 import { buildXcursor } from '../writers/xcursor.js'
 import { TarWriter } from '../writers/tarWriter.js'
-import { processFromSources } from '../imageProcessor.js'
+import { processFromSources, processAnimFrame } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 import { getCursorById } from '../../data/cursorDatabase.js'
 
@@ -45,21 +45,39 @@ export async function exportTheme() {
 
     const flip = project.flips[cursorId] ?? { x: false, y: false }
     const sources = getSourcesForCursor(cursorId)
+    const primaryImg = project.images[project.assignments[cursorId]]
+    const isAnimated = primaryImg?.frames?.length > 1
 
-    // Build one frame per output size
-    const frames = []
-    for (const size of sizes) {
-      try {
-        const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
-        frames.push(await processFromSources(sources, size, flip, scalePref))
-      } catch (err) {
-        console.warn(`Skipping size ${size} for ${cursorId}:`, err)
+    let xcurChunks
+    if (isAnimated) {
+      // Animated: for each nominal size, emit one chunk per animation frame
+      // (libXcursor cycles through equal-subtype chunks at each size)
+      xcurChunks = []
+      for (const size of sizes) {
+        for (const frame of primaryImg.frames) {
+          try {
+            xcurChunks.push(await processAnimFrame(frame, primaryImg.dims, size, flip))
+          } catch (err) {
+            console.warn(`Skipping anim frame for size ${size}, cursor ${cursorId}:`, err)
+          }
+        }
+      }
+    } else {
+      // Static: one chunk per output size
+      xcurChunks = []
+      for (const size of sizes) {
+        try {
+          const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
+          xcurChunks.push(await processFromSources(sources, size, flip, scalePref))
+        } catch (err) {
+          console.warn(`Skipping size ${size} for ${cursorId}:`, err)
+        }
       }
     }
 
-    if (!frames.length) continue
+    if (!xcurChunks.length) continue
 
-    const xcurData = buildXcursor(frames)
+    const xcurData = buildXcursor(xcurChunks)
     tar.addFile(`${themeName}/cursors/${cursorId}`, xcurData)
 
     // Aliases as symlinks (skip any already used as a primary name)

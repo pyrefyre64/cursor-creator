@@ -18,7 +18,11 @@ const TOC_ENTRY_SIZE = 12
 /**
  * Build an Xcursor binary file.
  *
- * @param {Array<{size: number, xhot: number, yhot: number, pixels: Uint8ClampedArray}>} frames
+ * For animated cursors, pass multiple entries sharing the same `size` value —
+ * libXcursor will cycle through them using each entry's `delay` (ms).
+ * The stable sort preserves frame order within each nominal size.
+ *
+ * @param {Array<{size:number, xhot:number, yhot:number, pixels:Uint8ClampedArray, delay?:number}>} frames
  *   pixels is straight (non-premultiplied) RGBA from canvas ImageData.
  * @returns {Uint8Array}
  */
@@ -55,7 +59,7 @@ export function buildXcursor(frames) {
 
   // Image chunks
   for (let i = 0; i < sorted.length; i++) {
-    const { size, xhot, yhot, pixels } = sorted[i]
+    const { size, xhot, yhot, pixels, delay } = sorted[i]
 
     // Chunk header (36 bytes)
     view.setUint32(pos, CHUNK_HEADER_SIZE, true); pos += 4
@@ -67,7 +71,7 @@ export function buildXcursor(frames) {
     view.setUint32(pos, size, true); pos += 4       // height
     view.setUint32(pos, Math.max(0, Math.min(xhot, size - 1)), true); pos += 4
     view.setUint32(pos, Math.max(0, Math.min(yhot, size - 1)), true); pos += 4
-    view.setUint32(pos, 50, true); pos += 4         // delay (ms), ignored for static
+    view.setUint32(pos, delay ?? 50, true); pos += 4    // delay (ms); >1 chunk per size = animation
 
     // Pixel data: convert straight RGBA → premultiplied ARGB little-endian
     const n = size * size

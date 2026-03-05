@@ -184,6 +184,34 @@ export async function processFromSources(sources, targetSize, flip = { x: false,
   }
 }
 
+/**
+ * Process one animation frame to a target output size.
+ * Mirrors processFromSources but operates on a single pre-parsed frame object.
+ *
+ * @param {{data:string, hotspot:{x:number,y:number}, delay:number}} frame
+ * @param {{width:number, height:number}} dims  — source dimensions (shared by all frames)
+ * @param {number} targetSize
+ * @param {{x:boolean,y:boolean}} [flip]
+ * @returns {Promise<{size:number, xhot:number, yhot:number, pixels:Uint8ClampedArray, delay:number}>}
+ */
+export async function processAnimFrame(frame, dims, targetSize, flip = { x: false, y: false }) {
+  const img = await loadImage(frame.data)
+  const pixels = resizeToPixels(img, targetSize, flip, dims.width, dims.height)
+
+  let xhot = Math.round(frame.hotspot.x * (targetSize / dims.width))
+  let yhot = Math.round(frame.hotspot.y * (targetSize / dims.height))
+  if (flip.x) xhot = targetSize - 1 - xhot
+  if (flip.y) yhot = targetSize - 1 - yhot
+
+  return {
+    size: targetSize,
+    xhot: Math.max(0, Math.min(xhot, targetSize - 1)),
+    yhot: Math.max(0, Math.min(yhot, targetSize - 1)),
+    pixels,
+    delay: frame.delay,
+  }
+}
+
 // ── Legacy helpers (kept for any remaining internal uses) ─────────────────────
 
 /** @deprecated Use processFromSources instead */

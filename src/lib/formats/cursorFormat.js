@@ -14,7 +14,10 @@ export const cursorFormatHandler = {
 
   /**
    * @param {File} file
-   * @returns {Promise<{dataUrl:string, hotspot:{x:number,y:number}|null, width:number, height:number}>}
+   * @returns {Promise<{
+   *   dataUrl:string, hotspot:{x:number,y:number}|null, width:number, height:number,
+   *   frames?: Array<{dataUrl:string, hotspot:{x:number,y:number}|null, width:number, height:number, delay:number}>
+   * }>}
    */
   async parse(file) {
     const buffer = await file.arrayBuffer()

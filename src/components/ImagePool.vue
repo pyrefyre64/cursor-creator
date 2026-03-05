@@ -2,6 +2,7 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import { project, ui, importFiles, removeImage, showToast } from '../store/project.js'
 import { getHandlerForFile, getAcceptString } from '../lib/formatRegistry.js'
+import AnimatedThumb from './AnimatedThumb.vue'
 
 const acceptString = getAcceptString()
 
@@ -129,10 +130,11 @@ function onRoleClick(role) {
             @dragstart="onDragStart($event, img.id)"
             @dragend="onDragEnd"
           >
-            <img :src="img.data" class="item-thumb" :title="img.filename" />
+            <AnimatedThumb v-if="img.frames?.length > 1" :frames="img.frames" :dims="img.dims" :size="28" class="item-thumb" :title="img.filename" />
+            <img v-else :src="img.data" class="item-thumb" :title="img.filename" />
             <div class="item-info">
               <span class="item-name" :title="img.filename">{{ img.filename }}</span>
-              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
+              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}<span v-if="img.frames?.length > 1" class="anim-badge"> · {{ img.frames.length }}f</span></span>
               <button
                 v-for="b in badgesFor(img.id)"
                 :key="b.cursorId + b.sizeStr"
@@ -162,10 +164,11 @@ function onRoleClick(role) {
             @dragstart="onDragStart($event, img.id)"
             @dragend="onDragEnd"
           >
-            <img :src="img.data" class="item-thumb" :title="img.filename" />
+            <AnimatedThumb v-if="img.frames?.length > 1" :frames="img.frames" :dims="img.dims" :size="28" class="item-thumb" :title="img.filename" />
+            <img v-else :src="img.data" class="item-thumb" :title="img.filename" />
             <div class="item-info">
               <span class="item-name" :title="img.filename">{{ img.filename }}</span>
-              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}</span>
+              <span class="item-dims">{{ img.dims.width }}×{{ img.dims.height }}<span v-if="img.frames?.length > 1" class="anim-badge"> · {{ img.frames.length }}f</span></span>
             </div>
             <button class="sm remove-btn" @click="onRemove(img.id)" title="Remove image">✕</button>
           </div>
@@ -300,6 +303,9 @@ function onRoleClick(role) {
   font-size: 10px;
   color: #7f8c8d;
   font-family: monospace;
+}
+.anim-badge {
+  color: #f39c12;
 }
 .item-assigned {
   font-size: 10px;

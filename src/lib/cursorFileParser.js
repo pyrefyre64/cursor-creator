@@ -3,9 +3,10 @@
  *
  * Supports:
  *   .cur — Windows cursor (ICO-like format with hotspot)
- *   .ani — Windows animated cursor (RIFF/ACON; extracts first frame)
+ *   .ani — Windows animated cursor (RIFF/ACON; all frames extracted)
  *
- * Returns the largest available image as a PNG data URL plus hotspot.
+ * Returns the largest available image from the first frame as a PNG data URL
+ * plus hotspot. For animated cursors (>1 frames), also returns a `frames` array.
  */
 
 /**
@@ -13,7 +14,13 @@
  *
  * @param {ArrayBuffer} buffer
  * @param {string} filename
- * @returns {{ dataUrl: string, hotspot: {x:number, y:number}|null, width: number, height: number }}
+ * @returns {{
+ *   dataUrl: string,
+ *   hotspot: {x:number, y:number}|null,
+ *   width: number,
+ *   height: number,
+ *   frames?: Array<{dataUrl:string, hotspot:{x:number,y:number}|null, width:number, height:number, delay:number}>
+ * }}
  */
 export function parseCursorFile(buffer, filename) {
   const data = new Uint8Array(buffer)
@@ -34,6 +41,7 @@ function _parseAni(data) {
 
   const riffEnd = Math.min(8 + _u32(data, 4), data.length)
   let anih = null
+  let rateChunk = null
   const iconChunks = []
   let pos = 12
 
@@ -48,9 +56,17 @@ function _parseAni(data) {
       //   +12 iWidth, +16 iHeight, +20 iBitCount, +24 nPlanes
       //   +28 iDispRate (1/60th sec), +32 bfAttributes (flags)
       anih = {
-        cx:  _u32(data, pos + 20),   // iWidth
-        cy:  _u32(data, pos + 24),   // iHeight
-        fl:  _u32(data, pos + 40),   // bfAttributes
+        nFrames:  _u32(data, pos + 12),  // nFrames  (pos+8+4)
+        cx:       _u32(data, pos + 20),  // iWidth   (pos+8+12)
+        cy:       _u32(data, pos + 24),  // iHeight  (pos+8+16)
+        iDispRate:_u32(data, pos + 36),  // iDispRate jiffies (pos+8+28)
+        fl:       _u32(data, pos + 40),  // bfAttributes (pos+8+32)
+      }
+    } else if (id === 'rate' && size > 0) {
+      // Per-frame display rates (jiffies each, 1 jiffy = 1/60 s)
+      rateChunk = []
+      for (let ri = 0; ri < (size >> 2); ri++) {
+        rateChunk.push(_u32(data, pos + 8 + ri * 4))
       }
     } else if (id === 'LIST' && pos + 12 <= riffEnd) {
       if (_fourCC(data, pos + 8) === 'fram') {
@@ -72,19 +88,47 @@ function _parseAni(data) {
 
   if (!iconChunks.length) throw new Error('No icon frames found in ANI file')
 
+  // Compute per-frame delays in milliseconds (1 jiffy = 1000/60 ms)
+  const globalJiffies = anih?.iDispRate || 30
+  const delays = iconChunks.map((_, i) =>
+    Math.round((rateChunk?.[i] ?? globalJiffies) * 1000 / 60))
+
   const afIcon = !anih || (anih.fl & 0x01) !== 0
 
   if (afIcon) {
-    // Frames are ICO/CUR format — parse first frame, pick largest image
-    const images = _parseIcoCurAll(iconChunks[0])
-    if (!images.length) throw new Error('No decodable images in ANI frame')
-    return _pickBest(images)
+    // Frames are ICO/CUR format — parse all frames, pick largest from each
+    const parsedFrames = iconChunks.map((chunk, i) => {
+      const images = _parseIcoCurAll(chunk)
+      if (!images.length) throw new Error(`No decodable images in ANI frame ${i}`)
+      const best = _pickBest(images)
+      return { dataUrl: best.dataUrl, hotspot: best.hotspot, width: best.width, height: best.height, delay: delays[i] }
+    })
+    const first = parsedFrames[0]
+    return {
+      dataUrl: first.dataUrl,
+      hotspot: first.hotspot,
+      width: first.width,
+      height: first.height,
+      ...(parsedFrames.length > 1 && { frames: parsedFrames }),
+    }
   } else {
     // Frames are raw cursor DIBs (XOR + AND masks, no ICO wrapper)
     const w = (anih && anih.cx) || 32
     const h = (anih && anih.cy) || 32
-    const dataUrl = _parseBmpInIco(iconChunks[0], w, h)
-    return { dataUrl, hotspot: null, width: w, height: h }
+    const parsedFrames = iconChunks.map((chunk, i) => ({
+      dataUrl: _parseBmpInIco(chunk, w, h),
+      hotspot: null,
+      width: w,
+      height: h,
+      delay: delays[i],
+    }))
+    return {
+      dataUrl: parsedFrames[0].dataUrl,
+      hotspot: null,
+      width: w,
+      height: h,
+      ...(parsedFrames.length > 1 && { frames: parsedFrames }),
+    }
   }
 }
 

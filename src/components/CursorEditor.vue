@@ -5,6 +5,7 @@ import { getCursorById } from '../data/cursorDatabase.js'
 import { pickBestSource, hasScaleChoice } from '../lib/imageProcessor.js'
 import HotspotCanvas from './HotspotCanvas.vue'
 import ScaleCompareDialog from './ScaleCompareDialog.vue'
+import AnimatedThumb from './AnimatedThumb.vue'
 
 const cursor = computed(() => ui.selectedCursorId ? getCursorById(ui.selectedCursorId) : null)
 
@@ -100,6 +101,13 @@ function onSourceHotspotY(source, e) {
 
 function thumbDisplaySize(nativeSize) {
   return Math.min(nativeSize, 64)
+}
+
+function animInfo(src) {
+  const frames = project.images[src.imageId]?.frames
+  if (!frames?.length) return null
+  const total = frames.reduce((s, f) => s + f.delay, 0)
+  return `${frames.length} frames · ${total}ms`
 }
 
 // ── Drop pool image onto sources list ──────────────────────────────────────
@@ -203,7 +211,15 @@ function onSourcesDrop(e) {
               @click="selectSource(src)"
             >
               <div class="source-thumb-wrap">
+                <AnimatedThumb
+                  v-if="project.images[src.imageId]?.frames?.length > 1"
+                  :frames="project.images[src.imageId].frames"
+                  :dims="src.dims"
+                  :size="thumbDisplaySize(src.dims.width)"
+                  class="source-thumb"
+                />
                 <img
+                  v-else
                   :src="src.data"
                   class="source-thumb"
                   :style="{ width: thumbDisplaySize(src.dims.width) + 'px', height: thumbDisplaySize(src.dims.height) + 'px' }"
@@ -212,6 +228,7 @@ function onSourcesDrop(e) {
               <div class="source-info">
                 <div class="source-meta">
                   <span class="source-size-badge">{{ src.dims.width }}×{{ src.dims.height }}</span>
+                  <span v-if="animInfo(src)" class="source-anim-info">{{ animInfo(src) }}</span>
                 </div>
                 <div class="source-hs-row">
                   <label>X <input type="number" :value="src.hotspot.x" :min="0" :max="src.dims.width - 1" @change="onSourceHotspotX(src, $event)" /></label>
@@ -411,6 +428,7 @@ function onSourcesDrop(e) {
 .source-info { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .source-meta { display: flex; align-items: center; gap: 6px; }
 .source-size-badge { font-family: monospace; font-size: 11px; font-weight: 700; color: #eff0f1; }
+.source-anim-info { font-size: 10px; color: #f39c12; font-family: monospace; }
 .source-hs-row { display: flex; gap: 8px; }
 .source-hs-row label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #aab; }
 .source-hs-row input { width: 50px; padding: 2px 4px; font-size: 11px; }
