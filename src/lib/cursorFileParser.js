@@ -42,6 +42,7 @@ function _parseAni(data) {
   const riffEnd = Math.min(8 + _u32(data, 4), data.length)
   let anih = null
   let rateChunk = null
+  let seqChunk = null
   const iconChunks = []
   let pos = 12
 
@@ -63,10 +64,16 @@ function _parseAni(data) {
         fl:       _u32(data, pos + 40),  // bfAttributes (pos+8+32)
       }
     } else if (id === 'rate' && size > 0) {
-      // Per-frame display rates (jiffies each, 1 jiffy = 1/60 s)
+      // Per-step display rates (jiffies each, 1 jiffy = 1/60 s)
       rateChunk = []
       for (let ri = 0; ri < (size >> 2); ri++) {
         rateChunk.push(_u32(data, pos + 8 + ri * 4))
+      }
+    } else if (id === 'seq ' && size > 0) {
+      // Playback sequence: maps step index → frame index (enables ping-pong etc.)
+      seqChunk = []
+      for (let si = 0; si < (size >> 2); si++) {
+        seqChunk.push(_u32(data, pos + 8 + si * 4))
       }
     } else if (id === 'LIST' && pos + 12 <= riffEnd) {
       if (_fourCC(data, pos + 8) === 'fram') {
@@ -88,47 +95,42 @@ function _parseAni(data) {
 
   if (!iconChunks.length) throw new Error('No icon frames found in ANI file')
 
-  // Compute per-frame delays in milliseconds (1 jiffy = 1000/60 ms)
+  // Expand the playback sequence.
+  // If a seq chunk is present, nSteps may differ from nFrames (e.g. ping-pong:
+  //   seq = [0,1,2,3,4,5,6,7,6,5,4,3,2,1] maps 14 steps onto 8 unique frames).
+  // The rate chunk gives per-step delays; if absent, iDispRate applies to all steps.
   const globalJiffies = anih?.iDispRate || 30
-  const delays = iconChunks.map((_, i) =>
-    Math.round((rateChunk?.[i] ?? globalJiffies) * 1000 / 60))
-
+  const nSteps = seqChunk?.length ?? iconChunks.length
   const afIcon = !anih || (anih.fl & 0x01) !== 0
 
-  if (afIcon) {
-    // Frames are ICO/CUR format — parse all frames, pick largest from each
-    const parsedFrames = iconChunks.map((chunk, i) => {
+  const parsedFrames = []
+  const w = (!afIcon && anih?.cx) || 32
+  const h = (!afIcon && anih?.cy) || 32
+
+  for (let step = 0; step < nSteps; step++) {
+    const frameIdx = seqChunk ? seqChunk[step] : step
+    if (frameIdx >= iconChunks.length) continue
+    const delay = Math.round((rateChunk?.[step] ?? globalJiffies) * 1000 / 60)
+    const chunk = iconChunks[frameIdx]
+
+    if (afIcon) {
       const images = _parseIcoCurAll(chunk)
-      if (!images.length) throw new Error(`No decodable images in ANI frame ${i}`)
+      if (!images.length) throw new Error(`No decodable images in ANI frame ${frameIdx}`)
       const best = _pickBest(images)
-      return { dataUrl: best.dataUrl, hotspot: best.hotspot, width: best.width, height: best.height, delay: delays[i] }
-    })
-    const first = parsedFrames[0]
-    return {
-      dataUrl: first.dataUrl,
-      hotspot: first.hotspot,
-      width: first.width,
-      height: first.height,
-      ...(parsedFrames.length > 1 && { frames: parsedFrames }),
+      parsedFrames.push({ dataUrl: best.dataUrl, hotspot: best.hotspot, width: best.width, height: best.height, delay })
+    } else {
+      parsedFrames.push({ dataUrl: _parseBmpInIco(chunk, w, h), hotspot: null, width: w, height: h, delay })
     }
-  } else {
-    // Frames are raw cursor DIBs (XOR + AND masks, no ICO wrapper)
-    const w = (anih && anih.cx) || 32
-    const h = (anih && anih.cy) || 32
-    const parsedFrames = iconChunks.map((chunk, i) => ({
-      dataUrl: _parseBmpInIco(chunk, w, h),
-      hotspot: null,
-      width: w,
-      height: h,
-      delay: delays[i],
-    }))
-    return {
-      dataUrl: parsedFrames[0].dataUrl,
-      hotspot: null,
-      width: w,
-      height: h,
-      ...(parsedFrames.length > 1 && { frames: parsedFrames }),
-    }
+  }
+
+  if (!parsedFrames.length) throw new Error('No frames produced from ANI file')
+  const first = parsedFrames[0]
+  return {
+    dataUrl: first.dataUrl,
+    hotspot: first.hotspot,
+    width: first.width,
+    height: first.height,
+    ...(parsedFrames.length > 1 && { frames: parsedFrames }),
   }
 }
 
