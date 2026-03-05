@@ -7,6 +7,8 @@
 
 A pure client-side web app for building KDE/X11 and Windows cursor themes from your own images. No account, no server, no uploads — everything runs in the browser.
 
+**[Use it here →](https://pyrefyre64.github.io/cursor-creator/)**
+
 **Output formats:**
 - **KDE/X11** — `.tar.gz` archive installable directly via *KDE Plasma Settings → Cursors → Install from file…*
 - **Windows** — `.zip` containing `.cur`/`.ani` files + `install.inf`
@@ -18,7 +20,6 @@ A pure client-side web app for building KDE/X11 and Windows cursor themes from y
 ## Features
 
 - Import standard images (PNG, JPEG, WebP, BMP, SVG) or cursor files (`.cur`, `.ani`, Xcursor)
-- Import archives (`.zip`, `.tar.gz`, `.tgz`, `.tar`) — contents are processed through the normal import pipeline
 - Full animated cursor support — `.ani` files with `seq` and `rate` chunks (including ping-pong sequences) import and export with correct per-frame delays
 - Automatic cursor role detection from filenames (e.g. `left_ptr.png`, `IBeam.cur`)
 - Multiple native-size sources per cursor — supply a hand-crafted image for any specific output size; all sizes export natively without unnecessary upscaling
@@ -48,7 +49,7 @@ A pure client-side web app for building KDE/X11 and Windows cursor themes from y
 
 1. **Set your theme name** in the Project Bar. This becomes the directory name inside the archive.
 
-2. **Import images** — click **Import** in the Image Pool or drag files/archives directly onto it. Accepted: any browser-readable image, `.cur`, `.ani`, Xcursor files, and `.zip`/`.tar.gz`/`.tar` archives.
+2. **Import images** — click **Import** in the Image Pool or drag files directly onto it. Accepted: any browser-readable image, `.cur`, `.ani`, and Xcursor files.
    - Files with recognisable names (e.g. `hand2.png`, `arrow.cur`) are assigned to the matching cursor role automatically.
 
 3. **Assign images to cursor roles** — drag a thumbnail from the Image Pool and drop it onto a slot in the Assignment Grid. Images are routed automatically: a new size becomes an additional native source for that role; the same size triggers a conflict dialog so you can keep or replace the existing one.
