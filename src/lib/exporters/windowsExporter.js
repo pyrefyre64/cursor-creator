@@ -11,6 +11,7 @@ import { buildAni } from '../writers/aniWriter.js'
 import { processFromSources, processAnimFrame } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 import { CURSORS } from '../../data/cursorDatabase.js'
+import { download } from './exportUtils.js'
 
 // Fixed order required by HKCU\Control Panel\Cursors registry values.
 const WIN_ROLE_ORDER = [
@@ -128,14 +129,5 @@ export async function exportWindowsCursors() {
   zipFiles['install.inf'] = new TextEncoder().encode(_buildInf(themeName, filesByCursorId))
 
   const safeThemeName = themeName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_')
-  _download(`${safeThemeName}_windows.zip`, zipSync(zipFiles), 'application/zip')
-}
-
-function _download(filename, data, mimeType) {
-  const blob = new Blob([data], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = filename
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  download(`${safeThemeName}_windows.zip`, zipSync(zipFiles), 'application/zip')
 }

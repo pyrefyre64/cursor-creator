@@ -7,15 +7,24 @@
  *     name: string          — human-readable name (e.g. "Windows Cursor")
  *     extensions?: string[] — file extensions WITHOUT dot (e.g. ['cur', 'ani'])
  *     mimeTypes?: string[]  — MIME type prefixes (e.g. ['image/'])
+ *     magic?: number[]      — leading magic bytes for extensionless files (e.g. [0x58,0x63,0x75,0x72])
+ *                             checked via getHandlerForFileMagic() as an async fallback
  *
  *     async parse(file: File): Promise<ParsedImage>
  *   }
  *
  *   ParsedImage: {
- *     dataUrl: string               — PNG/JPEG/etc. data URL for display & processing
+ *     dataUrl: string               — PNG data URL for frame 0 (display & processing)
  *     hotspot: {x,y} | null        — embedded hotspot (null = use center default)
  *     width: number                 — actual pixel width
  *     height: number                — actual pixel height
+ *     frames?: Array<{             — present only for animated sources (>1 frame)
+ *       dataUrl: string            —   PNG data URL for this frame
+ *       hotspot: {x,y} | null
+ *       width: number
+ *       height: number
+ *       delay: number              —   display duration in milliseconds
+ *     }>
  *   }
  *
  * Register handlers in priority order (first extension-match wins).

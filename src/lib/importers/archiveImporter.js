@@ -10,7 +10,7 @@
  */
 
 import { gunzipSync, unzipSync } from 'fflate'
-import { parseTar } from './tarReader.js'
+import { parseTar } from '../parsers/tarReader.js'
 import { importFiles } from '../../store/project.js'
 
 const MAX_DECOMPRESSED   = 200 * 1024 * 1024  // 200 MB
@@ -36,6 +36,7 @@ const _MIME_MAP = {
   jpeg: 'image/jpeg',
   svg:  'image/svg+xml',
   cur:  'image/vnd.microsoft.icon',
+  ani:  'application/octet-stream',
 }
 
 /** Create a File object from a raw bytes entry. Basename only (no path). */

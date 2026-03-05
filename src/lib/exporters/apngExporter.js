@@ -9,15 +9,9 @@
 
 import { zipSync } from 'fflate'
 import { buildApng } from '../writers/apngWriter.js'
-import { processFromSources, processAnimFrame } from '../imageProcessor.js'
+import { processFromSources, processAnimFrame, pixelsToPng } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
-
-async function _pixelsToPng(pixels, width, height) {
-  const canvas = new OffscreenCanvas(width, height)
-  canvas.getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0)
-  const blob = await canvas.convertToBlob({ type: 'image/png' })
-  return new Uint8Array(await blob.arrayBuffer())
-}
+import { download } from './exportUtils.js'
 
 /**
  * Export cursors as (animated) PNG files in a zip.
@@ -61,7 +55,7 @@ export async function exportApngZip(animatedOnly = false) {
           // Static cursor: regular PNG
           const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
           const result    = await processFromSources(sources, size, flip, scalePref)
-          zipFiles[filename] = await _pixelsToPng(result.pixels, size, size)
+          zipFiles[filename] = await pixelsToPng(result.pixels, size, size)
         }
       } catch (err) {
         console.warn(`Skipping ${cursorId} at ${size}px (apng):`, err)
@@ -74,14 +68,5 @@ export async function exportApngZip(animatedOnly = false) {
   }
 
   const suffix = animatedOnly ? '_apng_anim' : '_apng'
-  _download(`${safeThemeName}${suffix}.zip`, zipSync(zipFiles), 'application/zip')
-}
-
-function _download(filename, data, mimeType) {
-  const blob = new Blob([data], { type: mimeType })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url; a.download = filename
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  download(`${safeThemeName}${suffix}.zip`, zipSync(zipFiles), 'application/zip')
 }

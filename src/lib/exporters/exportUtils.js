@@ -1,0 +1,18 @@
+/**
+ * Shared utilities for all exporters.
+ */
+
+/**
+ * Trigger a browser file download.
+ * @param {string} filename
+ * @param {Uint8Array|string} data
+ * @param {string} mimeType
+ */
+export function download(filename, data, mimeType) {
+  const blob = new Blob([data], { type: mimeType })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

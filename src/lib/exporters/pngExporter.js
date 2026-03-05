@@ -5,16 +5,9 @@
  */
 
 import { zipSync } from 'fflate'
-import { processFromSources, processAnimFrame } from '../imageProcessor.js'
+import { processFromSources, processAnimFrame, pixelsToPng } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
-
-async function _pixelsToPng(pixels, width, height) {
-  const canvas = new OffscreenCanvas(width, height)
-  const ctx = canvas.getContext('2d')
-  ctx.putImageData(new ImageData(pixels, width, height), 0, 0)
-  const blob = await canvas.convertToBlob({ type: 'image/png' })
-  return new Uint8Array(await blob.arrayBuffer())
-}
+import { download } from './exportUtils.js'
 
 export async function exportPngZip() {
   const themeName = (project.meta.name || 'MyTheme').trim()
@@ -43,7 +36,7 @@ export async function exportPngZip() {
         for (const size of sizes) {
           try {
             const result = await processAnimFrame(frame, primaryImg.dims, size, flip)
-            zipFiles[`${cursorId}_${size}_f${tag}.png`] = await _pixelsToPng(result.pixels, size, size)
+            zipFiles[`${cursorId}_${size}_f${tag}.png`] = await pixelsToPng(result.pixels, size, size)
           } catch (err) {
             console.warn(`Skipping frame ${fi} size ${size} for ${cursorId} (png):`, err)
           }
@@ -54,7 +47,7 @@ export async function exportPngZip() {
         try {
           const scalePref = project.scalePrefs[cursorId]?.[String(size)] ?? null
           const result = await processFromSources(sources, size, flip, scalePref)
-          zipFiles[`${cursorId}_${size}.png`] = await _pixelsToPng(result.pixels, size, size)
+          zipFiles[`${cursorId}_${size}.png`] = await pixelsToPng(result.pixels, size, size)
         } catch (err) {
           console.warn(`Skipping size ${size} for ${cursorId} (png):`, err)
         }
@@ -64,14 +57,5 @@ export async function exportPngZip() {
 
   if (!Object.keys(zipFiles).length) throw new Error('No cursors could be processed.')
 
-  _download(`${safeThemeName}_cursors.zip`, zipSync(zipFiles), 'application/zip')
-}
-
-function _download(filename, data, mimeType) {
-  const blob = new Blob([data], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = filename
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  download(`${safeThemeName}_cursors.zip`, zipSync(zipFiles), 'application/zip')
 }

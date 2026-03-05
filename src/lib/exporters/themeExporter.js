@@ -1,9 +1,10 @@
 import { gzip } from 'fflate'
-import { buildXcursor } from '../writers/xcursor.js'
+import { buildXcursor } from '../writers/xcursorWriter.js'
 import { TarWriter } from '../writers/tarWriter.js'
 import { processFromSources, processAnimFrame } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 import { getCursorById } from '../../data/cursorDatabase.js'
+import { download } from './exportUtils.js'
 
 /**
  * Export the current project as a KDE cursor theme .tar.gz file.
@@ -99,17 +100,5 @@ export async function exportTheme() {
     })
   })
 
-  _download(`${themeName}.tar.gz`, compressed, 'application/gzip')
-}
-
-function _download(filename, data, mimeType) {
-  const blob = new Blob([data], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  download(`${themeName}.tar.gz`, compressed, 'application/gzip')
 }

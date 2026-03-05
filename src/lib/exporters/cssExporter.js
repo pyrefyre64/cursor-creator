@@ -8,6 +8,7 @@
 import { processFromSources } from '../imageProcessor.js'
 import { project, getSourcesForCursor } from '../../store/project.js'
 import { CURSORS } from '../../data/cursorDatabase.js'
+import { download } from './exportUtils.js'
 
 // Best-effort CSS cursor keyword fallbacks for each cursor role.
 const CSS_FALLBACK = {
@@ -105,14 +106,5 @@ export async function exportCssStylesheet() {
   }
 
   const bytes = new TextEncoder().encode(lines.join('\n'))
-  _download(`${safeThemeName}.css`, bytes, 'text/css')
-}
-
-function _download(filename, data, mimeType) {
-  const blob = new Blob([data], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = filename
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  download(`${safeThemeName}.css`, bytes, 'text/css')
 }

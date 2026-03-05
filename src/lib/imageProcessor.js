@@ -133,14 +133,20 @@ export function hasScaleChoice(sources, targetSize) {
 }
 
 /**
- * Process the best available source for one output size.
- * Hotspot is scaled proportionally from the chosen source's native coordinates.
- *
- * @param {Array<{data:string, hotspot:{x:number,y:number}, dims:{width:number,height:number}}>} sources
- * @param {number} targetSize
- * @param {{x:boolean,y:boolean}} [flip]
- * @returns {Promise<{size:number, xhot:number, yhot:number, pixels:Uint8ClampedArray}>}
+ * Render pixel data to raw PNG bytes.
+ * @param {Uint8ClampedArray} pixels  straight (non-premultiplied) RGBA
+ * @param {number} width
+ * @param {number} height
+ * @returns {Promise<Uint8Array>}
  */
+export async function pixelsToPng(pixels, width, height) {
+  const canvas = new OffscreenCanvas(width, height)
+  canvas.getContext('2d').putImageData(
+    new ImageData(pixels instanceof Uint8ClampedArray ? pixels : new Uint8ClampedArray(pixels), width, height), 0, 0)
+  const blob = await canvas.convertToBlob({ type: 'image/png' })
+  return new Uint8Array(await blob.arrayBuffer())
+}
+
 /**
  * Render pixel data to a blob URL (caller must revoke when done).
  * @param {Uint8ClampedArray} pixels
@@ -212,26 +218,3 @@ export async function processAnimFrame(frame, dims, targetSize, flip = { x: fals
   }
 }
 
-// ── Legacy helpers (kept for any remaining internal uses) ─────────────────────
-
-/** @deprecated Use processFromSources instead */
-export async function processImage(dataUrl, targetSize, hotspot, masterDims, flip = { x: false, y: false }) {
-  return processFromSources(
-    [{ data: dataUrl, hotspot, dims: masterDims }],
-    targetSize,
-    flip,
-  )
-}
-
-/** @deprecated Use processFromSources instead */
-export async function processOverride(overrideDataUrl, targetSize, overrideHotspot, masterHotspot, masterDims, flip = { x: false, y: false }) {
-  const hotspot = overrideHotspot ?? {
-    x: Math.round(masterHotspot.x * (targetSize / masterDims.width)),
-    y: Math.round(masterHotspot.y * (targetSize / masterDims.height)),
-  }
-  return processFromSources(
-    [{ data: overrideDataUrl, hotspot, dims: { width: targetSize, height: targetSize } }],
-    targetSize,
-    flip,
-  )
-}

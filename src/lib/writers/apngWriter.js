@@ -13,6 +13,8 @@
  * all colour types, bit depths, and filter methods are handled automatically.
  */
 
+import { pixelsToPng } from '../imageProcessor.js'
+
 // ── CRC-32 ────────────────────────────────────────────────────────────────────
 
 const _crcTable = (() => {
@@ -57,14 +59,6 @@ function _parsePngChunks(bytes) {
   return chunks
 }
 
-/** Convert pixel data (straight RGBA Uint8ClampedArray) to a PNG Uint8Array. */
-async function _pixelsToPng(pixels, width, height) {
-  const canvas = new OffscreenCanvas(width, height)
-  canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(pixels), width, height), 0, 0)
-  const blob = await canvas.convertToBlob({ type: 'image/png' })
-  return new Uint8Array(await blob.arrayBuffer())
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 const PNG_SIG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])
@@ -82,7 +76,7 @@ export async function buildApng(frames, width, height) {
   if (!frames.length) throw new Error('No frames provided')
 
   // Convert every frame's pixel data to PNG bytes
-  const pngs = await Promise.all(frames.map(f => _pixelsToPng(f.pixels, width, height)))
+  const pngs = await Promise.all(frames.map(f => pixelsToPng(f.pixels, width, height)))
 
   // Parse each PNG and extract the IHDR data + concatenated IDAT stream
   const parsed = pngs.map((png, fi) => {
