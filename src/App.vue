@@ -5,6 +5,7 @@ import ImagePool from './components/ImagePool.vue'
 import AssignmentGrid from './components/AssignmentGrid.vue'
 import CursorEditor from './components/CursorEditor.vue'
 import ConflictDialog from './components/ConflictDialog.vue'
+import HelpModal from './components/HelpModal.vue'
 </script>
 
 <template>
@@ -19,6 +20,9 @@ import ConflictDialog from './components/ConflictDialog.vue'
 
     <!-- Size-conflict resolution dialog -->
     <ConflictDialog v-if="ui.conflicts.length" />
+
+    <!-- Help / About modal -->
+    <HelpModal v-if="ui.showHelp" />
 
     <!-- Toast notifications -->
     <Transition name="toast">

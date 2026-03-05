@@ -41,6 +41,8 @@ export const ui = reactive({
    * @type {Array<{cursorId:string, sizeStr:string, newId:string, existingId:string, inPrimary:boolean}>}
    */
   conflicts: [],
+  /** Whether the help/about modal is open */
+  showHelp: false,
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

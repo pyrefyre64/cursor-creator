@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { project, saveProject, loadProject, showToast } from '../store/project.js'
+import { project, ui, saveProject, loadProject, showToast } from '../store/project.js'
 import { exportTheme } from '../lib/exporters/themeExporter.js'
 import { exportWindowsCursors } from '../lib/exporters/windowsExporter.js'
 import { exportPngZip } from '../lib/exporters/pngExporter.js'
@@ -130,6 +130,7 @@ const onExportApngAnim = () => _runDropdownExport(() => exportApngZip(true),    
         </div>
       </div>
       <input ref="loadInput" type="file" accept=".json" style="display:none" @change="onLoadFile" />
+      <button class="help-btn" @click="ui.showHelp = true" title="Help / About">?</button>
     </div>
   </div>
 </template>
@@ -263,5 +264,28 @@ button:disabled {
   height: 1px;
   background: #3d4347;
   margin: 3px 0;
+}
+
+.help-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: serif;
+  background: #2a2e32;
+  border: 1px solid #3d4347;
+  border-radius: 50%;
+  color: #7f8c8d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.help-btn:hover {
+  background: #31363b;
+  color: #eff0f1;
+  border-color: #5a6068;
 }
 </style>
