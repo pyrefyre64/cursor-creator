@@ -39,6 +39,7 @@ export const CURSORS = [
     id: 'left_ptr',
     label: 'Normal Select',
     winRole: 'Arrow',
+    cssCursor: 'default',
     category: 'pointer',
     aliases: [
       'default',
@@ -65,6 +66,7 @@ export const CURSORS = [
     id: 'hand2',
     label: 'Link Select',
     winRole: 'Hand',
+    cssCursor: 'pointer',
     category: 'link',
     aliases: [
       'pointer', 'hand', 'hand1', 'pointing_hand',
@@ -80,6 +82,7 @@ export const CURSORS = [
     id: 'watch',
     label: 'Busy',
     winRole: 'Wait',
+    cssCursor: 'wait',
     category: 'status',
     aliases: ['wait', 'clock', 'f29f11e539c5f3b21f0f5f1d45c01051'],
     detect: [/\bwatch\b/i, /\bwait\b/i, /\bclock\b/i, /\bbusy\b/i],
@@ -89,6 +92,7 @@ export const CURSORS = [
     id: 'left_ptr_watch',
     label: 'Working in Background',
     winRole: 'AppStarting',
+    cssCursor: 'progress',
     category: 'status',
     aliases: ['08e8e1c95fe2fc01f976f1e063a24ccd', '3ecb610c1bf2410f44200f48c40d3599'],
     detect: [/left[_-]?ptr[_-]?watch/i, /working/i, /app[_-]?starting/i, /background/i],
@@ -97,6 +101,7 @@ export const CURSORS = [
   {
     id: 'progress',
     label: 'Progress',
+    cssCursor: 'progress',
     category: 'status',
     aliases: ['half-busy'],
     detect: [/\bprogress\b/i],
@@ -108,6 +113,7 @@ export const CURSORS = [
     id: 'help',
     label: 'Help Select',
     winRole: 'Help',
+    cssCursor: 'help',
     category: 'help',
     aliases: [
       'question_arrow',
@@ -122,6 +128,7 @@ export const CURSORS = [
     id: 'crosshair',
     label: 'Precision Select',
     winRole: 'Crosshair',
+    cssCursor: 'crosshair',
     category: 'precision',
     aliases: ['cross', 'plus', 'tcross', 'diamond_cross'],
     detect: [/crosshair/i, /\bprecision\b/i, /\btcross\b/i, /\bcross\b/i],
@@ -133,6 +140,7 @@ export const CURSORS = [
     id: 'xterm',
     label: 'Text Select',
     winRole: 'IBeam',
+    cssCursor: 'text',
     category: 'text',
     aliases: ['text', 'ibeam'],
     detect: [/xterm/i, /\btext\b/i, /ibeam/i, /i[_-]?beam/i],
@@ -141,6 +149,7 @@ export const CURSORS = [
   {
     id: 'vertical-text',
     label: 'Vertical Text',
+    cssCursor: 'vertical-text',
     category: 'text',
     aliases: ['vertical_text'],
     detect: [/vertical[_-]?text/i],
@@ -163,6 +172,7 @@ export const CURSORS = [
     id: 'not-allowed',
     label: 'Unavailable',
     winRole: 'No',
+    cssCursor: 'not-allowed',
     category: 'unavailable',
     aliases: ['crossed_circle', 'circle', 'forbidden', '03b6e0fcb3499374a867c041f52298f0'],
     detect: [/not[_-]?allow/i, /unavailable/i, /forbid/i, /crossed[_-]?circle/i],
@@ -171,6 +181,7 @@ export const CURSORS = [
   {
     id: 'no-drop',
     label: 'No Drop',
+    cssCursor: 'no-drop',
     category: 'unavailable',
     aliases: ['dnd-no-drop', 'c7088f0f3e6c8088236ef8e1e3e70000'],
     detect: [/no[_-]?drop/i, /dnd[_-]?no/i],
@@ -182,6 +193,7 @@ export const CURSORS = [
     id: 'ew-resize',
     label: 'Horizontal Resize',
     winRole: 'SizeWE',
+    cssCursor: 'ew-resize',
     category: 'resize',
     aliases: ['sb_h_double_arrow', 'h_double_arrow', 'size_hor', '1ab6223944d28fd11d49c6a2c6f8998b'],
     detect: [/ew[_-]?resize/i, /horiz.*resize/i, /size[_-]?hor/i, /h[_-]?double[_-]?arrow/i],
@@ -190,6 +202,7 @@ export const CURSORS = [
   {
     id: 'col-resize',
     label: 'Column Resize',
+    cssCursor: 'col-resize',
     category: 'resize',
     aliases: ['3085a0e285430894940527032f8b26df'],
     detect: [/col[_-]?resize/i],
@@ -199,6 +212,7 @@ export const CURSORS = [
     id: 'ns-resize',
     label: 'Vertical Resize',
     winRole: 'SizeNS',
+    cssCursor: 'ns-resize',
     category: 'resize',
     aliases: ['sb_v_double_arrow', 'v_double_arrow', 'size_ver', '2870a09082c103050810ffdffffe0204', 'c07385c7190e701020ff7ffffd08103c'],
     detect: [/ns[_-]?resize/i, /vert.*resize/i, /size[_-]?ver/i, /v[_-]?double[_-]?arrow/i],
@@ -207,6 +221,7 @@ export const CURSORS = [
   {
     id: 'row-resize',
     label: 'Row Resize',
+    cssCursor: 'row-resize',
     category: 'resize',
     aliases: ['6407b0e523e9f812db0d7db2178c72d4'],
     detect: [/row[_-]?resize/i],
@@ -216,6 +231,7 @@ export const CURSORS = [
     id: 'nwse-resize',
     label: 'Diagonal Resize ↖↘',
     winRole: 'SizeNWSE',
+    cssCursor: 'nwse-resize',
     category: 'resize',
     aliases: [
       'size_fdiag',
@@ -230,6 +246,7 @@ export const CURSORS = [
     id: 'nesw-resize',
     label: 'Diagonal Resize ↗↙',
     winRole: 'SizeNESW',
+    cssCursor: 'nesw-resize',
     category: 'resize',
     aliases: [
       'size_bdiag', 
@@ -243,6 +260,7 @@ export const CURSORS = [
   {
     id: 'n-resize',
     label: 'North Resize',
+    cssCursor: 'n-resize',
     category: 'resize',
     aliases: ['top_side', 'top_tee'],
     detect: [/\bn[_-]resize\b/i, /\bnorth[_-]?resize\b/i, /top[_-]?side\b/i],
@@ -251,6 +269,7 @@ export const CURSORS = [
   {
     id: 's-resize',
     label: 'South Resize',
+    cssCursor: 's-resize',
     category: 'resize',
     aliases: ['bottom_side', 'bottom_tee'],
     detect: [/\bs[_-]resize\b/i, /\bsouth[_-]?resize\b/i, /bottom[_-]?side\b/i],
@@ -259,6 +278,7 @@ export const CURSORS = [
   {
     id: 'e-resize',
     label: 'East Resize',
+    cssCursor: 'e-resize',
     category: 'resize',
     aliases: ['right_side'],
     detect: [/\be[_-]resize\b/i, /\beast[_-]?resize\b/i, /right[_-]?side\b/i],
@@ -267,6 +287,7 @@ export const CURSORS = [
   {
     id: 'w-resize',
     label: 'West Resize',
+    cssCursor: 'w-resize',
     category: 'resize',
     aliases: ['left_side'],
     detect: [/\bw[_-]resize\b/i, /\bwest[_-]?resize\b/i, /left[_-]?side\b/i],
@@ -275,6 +296,7 @@ export const CURSORS = [
   {
     id: 'ne-resize',
     label: 'Northeast Resize',
+    cssCursor: 'ne-resize',
     category: 'resize',
     aliases: ['top_right_corner', 'ur_angle'],
     detect: [/\bne[_-]resize\b/i, /top[_-]?right[_-]?corner/i, /northeast[_-]?resize/i],
@@ -283,6 +305,7 @@ export const CURSORS = [
   {
     id: 'nw-resize',
     label: 'Northwest Resize',
+    cssCursor: 'nw-resize',
     category: 'resize',
     aliases: ['top_left_corner'],
     detect: [/\bnw[_-]resize\b/i, /top[_-]?left[_-]?corner/i, /northwest[_-]?resize/i],
@@ -291,6 +314,7 @@ export const CURSORS = [
   {
     id: 'se-resize',
     label: 'Southeast Resize',
+    cssCursor: 'se-resize',
     category: 'resize',
     aliases: ['bottom_right_corner', 'lr_angle'],
     detect: [/\bse[_-]resize\b/i, /bottom[_-]?right[_-]?corner/i, /southeast[_-]?resize/i],
@@ -299,6 +323,7 @@ export const CURSORS = [
   {
     id: 'sw-resize',
     label: 'Southwest Resize',
+    cssCursor: 'sw-resize',
     category: 'resize',
     aliases: ['bottom_left_corner', 'll_angle'],
     detect: [/\bsw[_-]resize\b/i, /bottom[_-]?left[_-]?corner/i, /southwest[_-]?resize/i],
@@ -310,6 +335,7 @@ export const CURSORS = [
     id: 'fleur',
     label: 'Move',
     winRole: 'SizeAll',
+    cssCursor: 'move',
     category: 'move',
     aliases: ['move', 'all-scroll', 'size_all', '00000000000000020006000e7e9ffc3f'],
     detect: [/\bfleur\b/i, /\bmove\b/i, /all[_-]?scroll/i, /size[_-]?all/i],
@@ -329,6 +355,7 @@ export const CURSORS = [
   {
     id: 'copy',
     label: 'Copy',
+    cssCursor: 'copy',
     category: 'dnd',
     aliases: ['dnd-copy', '1081e37283d90000800003c07f3ef6bf', 'b8e0e337f8ef5f93a3d96c56f7841765'],
     detect: [/\bcopy\b/i, /dnd[_-]?copy/i],
@@ -337,6 +364,7 @@ export const CURSORS = [
   {
     id: 'alias',
     label: 'Link / Alias',
+    cssCursor: 'alias',
     category: 'dnd',
     aliases: ['dnd-link', 'a2a266d0498c3104214a47bd64ab0fc8', '640fb0e74195791501fd1ed57b41487f'],
     detect: [/\balias\b/i, /dnd[_-]?link/i, /\blink\b/i],
@@ -345,6 +373,7 @@ export const CURSORS = [
   {
     id: 'dnd-move',
     label: 'DnD Move',
+    cssCursor: 'move',
     category: 'dnd',
     aliases: ['4498f0e0c1937ffe01fd06f973665830'],
     detect: [/dnd[_-]?move/i],
@@ -353,6 +382,7 @@ export const CURSORS = [
   {
     id: 'dnd-none',
     label: 'DnD None',
+    cssCursor: 'no-drop',
     category: 'dnd',
     aliases: [],
     detect: [/dnd[_-]?none/i],
@@ -363,6 +393,7 @@ export const CURSORS = [
   {
     id: 'zoom-in',
     label: 'Zoom In',
+    cssCursor: 'zoom-in',
     category: 'zoom',
     aliases: ['zoom_in'],
     detect: [/zoom[_-]?in/i],
@@ -371,6 +402,7 @@ export const CURSORS = [
   {
     id: 'zoom-out',
     label: 'Zoom Out',
+    cssCursor: 'zoom-out',
     category: 'zoom',
     aliases: ['zoom_out'],
     detect: [/zoom[_-]?out/i],
@@ -381,6 +413,7 @@ export const CURSORS = [
   {
     id: 'grab',
     label: 'Grab',
+    cssCursor: 'grab',
     category: 'grab',
     aliases: ['openhand', 'hand_grab'],
     detect: [/\bgrab\b/i, /open[_-]?hand/i],
@@ -389,6 +422,7 @@ export const CURSORS = [
   {
     id: 'grabbing',
     label: 'Grabbing',
+    cssCursor: 'grabbing',
     category: 'grab',
     aliases: ['closedhand', 'hand_grabbing'],
     detect: [/grabbing/i, /closed[_-]?hand/i],
@@ -399,6 +433,7 @@ export const CURSORS = [
   {
     id: 'cell',
     label: 'Cell Selection',
+    cssCursor: 'cell',
     category: 'misc',
     aliases: [],
     detect: [/\bcell\b/i],
@@ -407,6 +442,7 @@ export const CURSORS = [
   {
     id: 'context-menu',
     label: 'Context Menu',
+    cssCursor: 'context-menu',
     category: 'misc',
     aliases: ['context_menu'],
     detect: [/context[_-]?menu/i],

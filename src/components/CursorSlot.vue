@@ -66,6 +66,7 @@ function onClearClick(e) {
     :id="`slot-${cursor.id}`"
     class="cursor-slot"
     :class="{ selected: isSelected, assigned: !!image }"
+    :style="cursor.cssCursor ? { cursor: cursor.cssCursor } : undefined"
     @click="onClick"
     @dragover="onDragOver"
     @drop="onDrop"
