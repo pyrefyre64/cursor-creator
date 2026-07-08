@@ -1,0 +1,31 @@
+[Version]
+signature="$CHICAGO$"
+
+[DefaultInstall]
+CopyFiles = Scheme.Cur
+AddReg    = Scheme.Reg
+
+[DestinationDirs]
+Scheme.Cur = 10,"Cursors\[pixloen] Tokai Teio"
+
+[Scheme.Reg]
+HKCU,"Control Panel\Cursors\Schemes","[pixloen] Tokai Teio",0x00010000,"%10%\Cursors\[pixloen] Tokai Teio\Normal Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Help Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Working In Background.ani,%10%\Cursors\[pixloen] Tokai Teio\Busy.ani,%10%\Cursors\[pixloen] Tokai Teio\Precision Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Text Select 2.ani,%10%\Cursors\[pixloen] Tokai Teio\Handwriting.ani,%10%\Cursors\[pixloen] Tokai Teio\Unavailable.ani,%10%\Cursors\[pixloen] Tokai Teio\Vertical Resize.ani,%10%\Cursors\[pixloen] Tokai Teio\Horizontal Resize.ani,%10%\Cursors\[pixloen] Tokai Teio\Diagonal Resize 1.ani,%10%\Cursors\[pixloen] Tokai Teio\Diagonal Resize 2.ani,%10%\Cursors\[pixloen] Tokai Teio\Move.ani,%10%\Cursors\[pixloen] Tokai Teio\Alternate Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Link Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Location Select.ani,%10%\Cursors\[pixloen] Tokai Teio\Person Select.ani"
+
+[Scheme.Cur]
+"Normal Select.ani"
+"Help Select.ani"
+"Working In Background.ani"
+"Busy.ani"
+"Precision Select.ani"
+"Text Select 2.ani"
+"Handwriting.ani"
+"Unavailable.ani"
+"Vertical Resize.ani"
+"Horizontal Resize.ani"
+"Diagonal Resize 1.ani"
+"Diagonal Resize 2.ani"
+"Move.ani"
+"Alternate Select.ani"
+"Link Select.ani"
+"Location Select.ani"
+"Person Select.ani"
